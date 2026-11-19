@@ -18,11 +18,7 @@ fun BookSearchTheme(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     content: @Composable () -> Unit,
 ) {
-    val darkTheme = when (themeMode) {
-        ThemeMode.LIGHT -> false
-        ThemeMode.DARK -> true
-        ThemeMode.SYSTEM -> isSystemInDarkTheme()
-    }
+    val darkTheme = themeMode.isDarkTheme()
 
     CompositionLocalProvider(
         LocalSpacing provides Spacing(),
@@ -35,6 +31,14 @@ fun BookSearchTheme(
             content = content,
         )
     }
+}
+
+/** Resolves the user's theme choice against the system setting. */
+@Composable
+fun ThemeMode.isDarkTheme(): Boolean = when (this) {
+    ThemeMode.LIGHT -> false
+    ThemeMode.DARK -> true
+    ThemeMode.SYSTEM -> isSystemInDarkTheme()
 }
 
 fun colorSchemeFor(palette: ColorPalette, darkTheme: Boolean): ColorScheme = when (palette) {
