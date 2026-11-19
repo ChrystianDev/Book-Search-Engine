@@ -15,6 +15,9 @@ object AppModule {
     private const val CONTACT_URL = "https://gitlab.com/android-apps9344722/book-search-engine-tht"
 
     @Provides
+    fun provideBuildInfo(): BuildInfo = BuildInfo(isDebug = BuildConfig.DEBUG)
+
+    @Provides
     fun provideSearchConfig(): SearchConfig = SearchConfig()
 
     @Provides

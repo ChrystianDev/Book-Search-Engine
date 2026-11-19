@@ -8,6 +8,7 @@ import androidx.navigation.toRoute
 import com.booksearch.app.feature.detail.DetailScreen
 import com.booksearch.app.feature.home.HomeScreen
 import com.booksearch.app.feature.onboarding.OnboardingScreen
+import com.booksearch.app.feature.settings.SettingsScreen
 
 @Composable
 fun AppNavHost(startDestination: Any) {
@@ -33,7 +34,8 @@ fun AppNavHost(startDestination: Any) {
             val route = backStackEntry.toRoute<DetailRoute>()
             DetailScreen(workId = route.workId, onBack = navController::navigateUp)
         }
-        // Settings destination is registered in the next step.
-        composable<SettingsRoute> {}
+        composable<SettingsRoute> {
+            SettingsScreen(onBack = navController::navigateUp)
+        }
     }
 }

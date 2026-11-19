@@ -60,4 +60,18 @@
 
     <!-- Settings -->
     <string name="settings_title">Ajustes</string>
+    <string name="settings_palette">Paleta de color</string>
+    <string name="settings_theme">Tema</string>
+    <string name="settings_developer">Herramientas de demostración</string>
+    <string name="settings_demo_latency">Modo demo: latencia simulada</string>
+    <string name="settings_demo_latency_description">Añade 1,5 s a cada búsqueda para que se vea cómo se cancela la anterior al escribir. Solo disponible en builds de depuración.</string>
+    <string name="palette_library">Biblioteca</string>
+    <string name="palette_library_description">Azul tinta y ámbar. Serio y editorial.</string>
+    <string name="palette_forest">Bosque</string>
+    <string name="palette_forest_description">Verde pino y terracota. Tranquilo y natural.</string>
+    <string name="palette_graphite">Grafito</string>
+    <string name="palette_graphite_description">Gris carbón e índigo. Minimalista y tecnológico.</string>
+    <string name="theme_light">Claro</string>
+    <string name="theme_dark">Oscuro</string>
+    <string name="theme_system">Sistema</string>
 </resources>
