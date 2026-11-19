@@ -1,4 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">BookSearch</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_skip">Saltar</string>
+    <string name="onboarding_next">Siguiente</string>
+    <string name="onboarding_start">Empezar</string>
+    <string name="onboarding_page_indicator">Página %1$d de %2$d</string>
+    <string name="onboarding_search_title">Encuentra libros al instante</string>
+    <string name="onboarding_search_body">Escribe un título o un autor y verás los resultados mientras escribes, entre millones de libros de Open Library.</string>
+    <string name="onboarding_smart_title">Búsquedas inteligentes</string>
+    <string name="onboarding_smart_body">Si cambias de idea a mitad de búsqueda, la app olvida la anterior y solo te muestra lo último que has pedido. Y lo que has buscado hace poco aparece al momento, sin esperas.</string>
+    <string name="onboarding_detail_title">Todo sobre cada libro</string>
+    <string name="onboarding_detail_body">Toca cualquier libro para ver su portada, autores, año de publicación, descripción y temas.</string>
 </resources>

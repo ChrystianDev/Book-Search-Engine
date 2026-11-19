@@ -4,21 +4,44 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.activity.viewModels
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.booksearch.app.navigation.AppNavHost
+import com.booksearch.app.navigation.HomeRoute
+import com.booksearch.app.navigation.OnboardingRoute
 import com.booksearch.app.ui.theme.BookSearchTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    private val viewModel: MainViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Keep the splash until preferences are known, so we never flash the wrong theme or screen.
+        splashScreen.setKeepOnScreenCondition { viewModel.uiState.value is MainUiState.Loading }
+
         setContent {
-            BookSearchTheme {
-                Surface { Text(getString(R.string.app_name)) }
+            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+            val ready = uiState as? MainUiState.Ready ?: return@setContent
+
+            // Decided once: later preference changes must not rebuild the navigation graph.
+            val startDestination = remember {
+                if (ready.preferences.onboardingCompleted) HomeRoute else OnboardingRoute
+            }
+
+            BookSearchTheme(
+                palette = ready.preferences.colorPalette,
+                themeMode = ready.preferences.themeMode,
+            ) {
+                AppNavHost(startDestination = startDestination)
             }
         }
     }

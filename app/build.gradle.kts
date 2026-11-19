@@ -49,6 +49,11 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.core.splashscreen)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.timber)
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
@@ -58,6 +63,7 @@ dependencies {
     debugImplementation(libs.compose.ui.tooling)
 
     implementation(libs.hilt.android)
+    implementation(libs.hilt.lifecycle.viewmodel.compose)
     ksp(libs.hilt.compiler)
 
     testImplementation(libs.junit)
