@@ -17,6 +17,7 @@
     <!-- Common -->
     <string name="action_retry">Reintentar</string>
     <string name="action_open_detail">Ver detalle</string>
+    <string name="action_back">Volver</string>
     <string name="cover_of">Portada de %1$s</string>
     <string name="error_no_connection">Parece que no hay conexión a internet. Revisa tu conexión e inténtalo de nuevo.</string>
     <string name="error_timeout">El servidor está tardando demasiado en responder. Inténtalo de nuevo en unos segundos.</string>
@@ -48,6 +49,14 @@
         <item quantity="many">%1$d ediciones</item>
         <item quantity="other">%1$d ediciones</item>
     </plurals>
+
+    <!-- Detail -->
+    <string name="detail_error_title">No hemos podido cargar este libro</string>
+    <string name="detail_unknown_author">Autor desconocido</string>
+    <string name="detail_first_published">Publicado por primera vez en %1$d</string>
+    <string name="detail_description">Descripción</string>
+    <string name="detail_no_description">Este libro todavía no tiene descripción en Open Library.</string>
+    <string name="detail_subjects">Temas</string>
 
     <!-- Settings -->
     <string name="settings_title">Ajustes</string>
