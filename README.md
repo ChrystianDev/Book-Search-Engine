@@ -52,6 +52,8 @@ adb logcat -s BookSearch OkHttp
 
 ## Arquitectura
 
+> Detalle de la estructura multimódulo y de las reglas de arquitectura en [ARCHITECTURE.md](ARCHITECTURE.md).
+
 MVVM con separación estricta en tres módulos Gradle:
 
 ```mermaid
