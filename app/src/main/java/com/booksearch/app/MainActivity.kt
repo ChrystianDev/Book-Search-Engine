@@ -3,13 +3,23 @@ package com.booksearch.app
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.booksearch.app.ui.theme.BookSearchTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
-        setContent { Text(getString(R.string.app_name)) }
+        enableEdgeToEdge()
+        setContent {
+            BookSearchTheme {
+                Surface { Text(getString(R.string.app_name)) }
+            }
+        }
     }
 }
