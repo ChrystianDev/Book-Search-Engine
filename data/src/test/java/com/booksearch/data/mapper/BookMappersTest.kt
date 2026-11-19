@@ -73,6 +73,12 @@ class BookMappersTest {
     }
 
     @Test
+    fun `given a year from search and a publish date, when mapping, then the search year wins`() {
+        val detail = WorkDto(firstPublishDate = "January 1938").toDomain("OL1W", emptyList(), searchYear = 1937)
+        assertEquals(1937, detail.firstPublishYear)
+    }
+
+    @Test
     fun `given a work without optional fields, when mapping to detail, then nullable fields are null`() {
         // When
         val detail = WorkDto().toDomain(workId = "OL1W", authorNames = emptyList())

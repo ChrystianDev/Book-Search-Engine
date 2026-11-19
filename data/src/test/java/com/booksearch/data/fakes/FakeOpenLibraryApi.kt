@@ -20,7 +20,13 @@ class FakeOpenLibraryApi : OpenLibraryApi {
     var workCalls = 0
         private set
 
+    val yearsByWorkKey = mutableMapOf<String, Int>()
+
     override suspend fun search(query: String, fields: String, limit: Int): SearchResponseDto {
+        if (query.startsWith("key:")) {
+            val workKey = query.removePrefix("key:")
+            return SearchResponseDto(listOf(BookDocDto(key = workKey, firstPublishYear = yearsByWorkKey[workKey])))
+        }
         searchCalls += query
         searchFailure?.let { throw it }
         return SearchResponseDto(

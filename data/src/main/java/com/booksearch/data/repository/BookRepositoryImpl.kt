@@ -71,15 +71,29 @@ class BookRepositoryImpl @Inject constructor(
     override suspend fun getBookDetail(workId: String): BookDetail = withContext(ioDispatcher) {
         detailCache.get(workId)?.let { return@withContext it }
 
-        val work = logged("work $workId") { api.getWork(workId) }
-        val authorIds = work.authorIds()
-        val authorNames = fetchAuthorNames(authorIds)
-        val detail = work.toDomain(workId, authorNames)
+        coroutineScope {
+            // Many works lack `first_publish_date`; the search index always has the year.
+            // Requested in parallel with the work, so it adds no latency.
+            val searchYear = async { fetchFirstPublishYear(workId) }
 
-        // Only cache complete details, so a transient author failure is retried next time.
-        if (authorNames.size == authorIds.size) detailCache.put(workId, detail)
-        detail
+            val work = logged("work $workId") { api.getWork(workId) }
+            val authorIds = work.authorIds()
+            val authorNames = fetchAuthorNames(authorIds)
+            val detail = work.toDomain(workId, authorNames, searchYear.await())
+
+            // Only cache complete details, so a transient author failure is retried next time.
+            if (authorNames.size == authorIds.size) detailCache.put(workId, detail)
+            detail
+        }
     }
+
+    /** Optional enrichment: a failure just means "no year from search" (cancellation still propagates). */
+    private suspend fun fetchFirstPublishYear(workId: String): Int? =
+        catchDomainError {
+            logged("year $workId") {
+                api.search(query = "key:/works/$workId", fields = YEAR_FIELDS, limit = 1)
+            }
+        }.getOrNull()?.docs?.firstOrNull()?.firstPublishYear
 
     /**
      * Resolves author names in parallel. A failing author is skipped instead of failing the
@@ -116,6 +130,7 @@ class BookRepositoryImpl @Inject constructor(
 
     private companion object {
         const val TRENDING_KEY = "trending"
+        const val YEAR_FIELDS = "key,first_publish_year"
     }
 }
 

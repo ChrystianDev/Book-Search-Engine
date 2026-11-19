@@ -47,6 +47,19 @@ class BookRepositoryDetailTest {
     }
 
     @Test
+    fun `given a work without publish date, when loading the detail, then the year comes from the search index`() = runTest {
+        // Given
+        api.works["OL1W"] = workWithAuthors().copy(firstPublishDate = null)
+        api.yearsByWorkKey["/works/OL1W"] = 1951
+
+        // When
+        val detail = createRepository().getBookDetail("OL1W")
+
+        // Then
+        assertEquals(1951, detail.firstPublishYear)
+    }
+
+    @Test
     fun `given one author fails, when loading the detail, then the other authors are still shown`() = runTest {
         // Given
         api.works["OL1W"] = workWithAuthors("A1", "MISSING")

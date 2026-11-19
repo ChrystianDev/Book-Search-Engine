@@ -43,11 +43,12 @@ fun SubjectWorkDto.toDomain(): Book? {
 fun WorkDto.authorIds(): List<String> =
     authors.mapNotNull { it.author?.key?.substringAfterLast('/') }.distinct()
 
-fun WorkDto.toDomain(workId: String, authorNames: List<String>): BookDetail = BookDetail(
+/** @param searchYear year from the search index, preferred over parsing the free-text date. */
+fun WorkDto.toDomain(workId: String, authorNames: List<String>, searchYear: Int? = null): BookDetail = BookDetail(
     workId = workId,
     title = title.orEmpty(),
     authors = authorNames,
-    firstPublishYear = firstPublishDate?.let(::parseYear),
+    firstPublishYear = searchYear ?: firstPublishDate?.let(::parseYear),
     description = description?.let(::cleanDescription),
     subjects = cleanSubjects(subjects),
     coverUrl = covers.firstOrNull { it > 0 }?.let { CoverUrls.large(it) },
