@@ -22,7 +22,13 @@ fun AppNavHost(startDestination: Any) {
             )
         }
         composable<HomeRoute> {
-            HomeScreen()
+            HomeScreen(
+                onBookClick = { workId -> navController.navigate(DetailRoute(workId)) },
+                onSettingsClick = { navController.navigate(SettingsRoute) },
+            )
         }
+        // Detail and Settings destinations are registered in the next steps.
+        composable<DetailRoute> {}
+        composable<SettingsRoute> {}
     }
 }
