@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -18,6 +19,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.booksearch.app.R
+import com.booksearch.app.ui.theme.spacing
 import com.booksearch.domain.model.Book
 
 @Composable
@@ -32,6 +34,10 @@ fun HomeScreen(
         uiState = uiState,
         onBookClick = { book -> onBookClick(book.workId) },
         onSettingsClick = onSettingsClick,
+        onQueryChange = viewModel::onQueryChange,
+        onClearQuery = viewModel::onClearQuery,
+        onCancelSearch = viewModel::onCancelSearch,
+        onRetrySearch = viewModel::onRetrySearch,
         onRetryDiscovery = viewModel::onRetryDiscovery,
     )
 }
@@ -42,6 +48,10 @@ private fun HomeContent(
     uiState: HomeUiState,
     onBookClick: (Book) -> Unit,
     onSettingsClick: () -> Unit,
+    onQueryChange: (String) -> Unit,
+    onClearQuery: () -> Unit,
+    onCancelSearch: () -> Unit,
+    onRetrySearch: () -> Unit,
     onRetryDiscovery: () -> Unit,
 ) {
     Scaffold(
@@ -61,11 +71,31 @@ private fun HomeContent(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            DiscoveryContent(
-                state = uiState.discovery,
-                onBookClick = onBookClick,
-                onRetry = onRetryDiscovery,
+            SearchField(
+                query = uiState.query,
+                onQueryChange = onQueryChange,
+                onClear = onClearQuery,
+                modifier = Modifier.padding(
+                    horizontal = MaterialTheme.spacing.lg,
+                    vertical = MaterialTheme.spacing.sm,
+                ),
             )
+
+            if (uiState.search == SearchState.Idle) {
+                DiscoveryContent(
+                    state = uiState.discovery,
+                    onBookClick = onBookClick,
+                    onRetry = onRetryDiscovery,
+                    modifier = Modifier.padding(top = MaterialTheme.spacing.md),
+                )
+            } else {
+                SearchResultsContent(
+                    state = uiState.search,
+                    onBookClick = onBookClick,
+                    onCancel = onCancelSearch,
+                    onRetry = onRetrySearch,
+                )
+            }
         }
     }
 }
