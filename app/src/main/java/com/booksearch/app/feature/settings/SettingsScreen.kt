@@ -50,6 +50,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.booksearch.app.R
 import com.booksearch.app.ui.theme.colorSchemeFor
 import com.booksearch.app.ui.theme.spacing
+import com.booksearch.domain.model.CacheType
 import com.booksearch.domain.model.ColorPalette
 import com.booksearch.domain.model.ThemeMode
 
@@ -64,6 +65,7 @@ fun SettingsScreen(
         onBack = onBack,
         onPaletteSelected = viewModel::onColorPaletteSelected,
         onThemeModeSelected = viewModel::onThemeModeSelected,
+        onCacheTypeSelected = viewModel::onCacheTypeSelected,
         onDemoLatencyChanged = viewModel::onDemoLatencyChanged,
     )
 }
@@ -75,6 +77,7 @@ private fun SettingsContent(
     onBack: () -> Unit,
     onPaletteSelected: (ColorPalette) -> Unit,
     onThemeModeSelected: (ThemeMode) -> Unit,
+    onCacheTypeSelected: (CacheType) -> Unit,
     onDemoLatencyChanged: (Boolean) -> Unit,
 ) {
     Scaffold(
@@ -113,6 +116,20 @@ private fun SettingsContent(
 
             SectionHeader(R.string.settings_theme)
             ThemeModeSelector(selected = uiState.themeMode, onSelected = onThemeModeSelected)
+
+            SectionHeader(R.string.settings_cache)
+            Column(
+                modifier = Modifier.selectableGroup(),
+                verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.sm),
+            ) {
+                CacheType.entries.forEach { type ->
+                    CacheTypeOption(
+                        type = type,
+                        selected = type == uiState.cacheType,
+                        onClick = { onCacheTypeSelected(type) },
+                    )
+                }
+            }
 
             if (uiState.showDemoLatency) {
                 SectionHeader(R.string.settings_developer)
@@ -165,6 +182,38 @@ private fun PaletteOption(palette: ColorPalette, selected: Boolean, onClick: () 
                 Text(stringResource(palette.nameRes()), style = MaterialTheme.typography.titleSmall)
                 Text(
                     stringResource(palette.descriptionRes()),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            RadioButton(selected = selected, onClick = null)
+        }
+    }
+}
+
+@Composable
+private fun CacheTypeOption(type: CacheType, selected: Boolean, onClick: () -> Unit) {
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = BorderStroke(
+            width = if (selected) 2.dp else 1.dp,
+            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.medium)
+            .selectable(selected = selected, onClick = onClick, role = Role.RadioButton),
+    ) {
+        Row(
+            modifier = Modifier.padding(MaterialTheme.spacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.md),
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(type.labelRes()), style = MaterialTheme.typography.titleSmall)
+                Text(
+                    stringResource(type.descriptionRes()),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -243,4 +292,14 @@ private fun ThemeMode.labelRes(): Int = when (this) {
     ThemeMode.LIGHT -> R.string.theme_light
     ThemeMode.DARK -> R.string.theme_dark
     ThemeMode.SYSTEM -> R.string.theme_system
+}
+
+private fun CacheType.labelRes(): Int = when (this) {
+    CacheType.MEMORY -> R.string.cache_memory
+    CacheType.DISK -> R.string.cache_disk
+}
+
+private fun CacheType.descriptionRes(): Int = when (this) {
+    CacheType.MEMORY -> R.string.cache_memory_description
+    CacheType.DISK -> R.string.cache_disk_description
 }

@@ -1,7 +1,12 @@
 package com.booksearch.data.repository
 
+import com.booksearch.data.cache.BookCacheStore
 import com.booksearch.data.cache.CacheConfig
+import com.booksearch.data.cache.InMemoryBookCaches
+import com.booksearch.data.cache.room.RoomBookCaches
+import com.booksearch.data.fakes.FakeCacheEntryDao
 import com.booksearch.data.fakes.FakeOpenLibraryApi
+import com.booksearch.data.fakes.FakePreferencesRepository
 import com.booksearch.data.fakes.FakeTimeProvider
 import com.booksearch.domain.error.DomainError
 import com.booksearch.domain.error.DomainException
@@ -23,8 +28,11 @@ class BookRepositoryCacheTest {
 
     private fun TestScope.createRepository() = BookRepositoryImpl(
         api = api,
-        timeProvider = time,
-        cacheConfig = CacheConfig(ttlMillis = ttl),
+        caches = BookCacheStore(
+            preferencesRepository = FakePreferencesRepository(),
+            inMemory = InMemoryBookCaches(time, CacheConfig(ttlMillis = ttl)),
+            onDisk = RoomBookCaches(FakeCacheEntryDao(), time, CacheConfig(ttlMillis = ttl)),
+        ),
         ioDispatcher = StandardTestDispatcher(testScheduler),
     )
 

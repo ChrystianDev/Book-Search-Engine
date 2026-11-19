@@ -4,6 +4,7 @@ import app.cash.turbine.test
 import com.booksearch.app.di.BuildInfo
 import com.booksearch.app.testing.FakePreferencesRepository
 import com.booksearch.app.testing.MainDispatcherRule
+import com.booksearch.domain.model.CacheType
 import com.booksearch.domain.model.ColorPalette
 import com.booksearch.domain.model.ThemeMode
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -39,6 +40,24 @@ class SettingsViewModelTest {
             val state = expectMostRecentItem()
             assertEquals(ColorPalette.FOREST, state.colorPalette)
             assertEquals(ThemeMode.DARK, state.themeMode)
+        }
+    }
+
+    @Test
+    fun `given the settings screen, when a cache type is selected, then it is persisted and exposed`() = runTest {
+        // Given
+        val viewModel = SettingsViewModel(repository, BuildInfo(isDebug = true))
+
+        viewModel.uiState.test {
+            assertEquals(CacheType.MEMORY, awaitItem().cacheType)
+
+            // When
+            viewModel.onCacheTypeSelected(CacheType.DISK)
+            testScheduler.advanceUntilIdle()
+
+            // Then
+            assertEquals(CacheType.DISK, expectMostRecentItem().cacheType)
+            assertEquals(CacheType.DISK, repository.preferences.value.cacheType)
         }
     }
 

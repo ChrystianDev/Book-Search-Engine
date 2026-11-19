@@ -5,7 +5,10 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStoreFile
+import androidx.room.Room
 import com.booksearch.data.cache.CacheConfig
+import com.booksearch.data.cache.room.BookSearchDatabase
+import com.booksearch.data.cache.room.CacheEntryDao
 import com.booksearch.data.preferences.PreferencesRepositoryImpl
 import com.booksearch.data.repository.BookRepositoryImpl
 import com.booksearch.data.time.SystemTimeProvider
@@ -40,6 +43,16 @@ abstract class DataModule {
 
         @Provides
         fun provideCacheConfig(): CacheConfig = CacheConfig()
+
+        @Provides
+        @Singleton
+        fun provideBookSearchDatabase(
+            @ApplicationContext context: Context,
+        ): BookSearchDatabase =
+            Room.databaseBuilder(context, BookSearchDatabase::class.java, BookSearchDatabase.NAME).build()
+
+        @Provides
+        fun provideCacheEntryDao(database: BookSearchDatabase): CacheEntryDao = database.cacheEntryDao()
 
         @Provides
         @Singleton

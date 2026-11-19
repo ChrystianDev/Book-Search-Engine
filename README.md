@@ -124,6 +124,23 @@ Resultado: **ninguna cancelación aparece nunca como error en la UI.**
 - **Por qué no un decorador `CachedBookRepository`**: el repositorio usa tres caches con políticas distintas (búsqueda con `fromCache`, home, y detalle solo si está completo). Mantenerlas junto a la lógica de red que protegen resultó más claro que repartirlas en un decorador.
 - Limitación aceptada: dos búsquedas idénticas *simultáneas* sin cache harán dos peticiones. No ocurre en la UI, porque cada búsqueda nueva cancela la anterior.
 
+### 2b. Cache en disco (Room), seleccionable en Ajustes
+
+Además de la cache en memoria, existe una cache persistente en **Room**. El usuario elige el backend en *Ajustes → Caché*:
+
+| Opción | Comportamiento |
+|---|---|
+| **Memoria** (por defecto) | `InMemoryCache`, como siempre. Se vacía al cerrar la app por completo. |
+| **Disco (persistente)** | `RoomCache`: los resultados se guardan como JSON en una base de datos local y sobreviven a un reinicio completo de la app. El TTL de 3 minutos también aplica en disco (la fecha de guardado se persiste). |
+
+Cómo está montado:
+
+- `KeyValueCache<K, V>` (en `:data`) es la interfaz común; `InMemoryCache` y `RoomCache` la implementan, con la misma política: TTL por entrada y límite LRU de 50 entradas. La expiración se comprueba al leer, así que no hay limpieza en el arranque.
+- `BookCaches` agrupa las tres caches (búsqueda, home, detalle); `InMemoryBookCaches` y `RoomBookCaches` son los dos backends. `BookCacheStore` lee la preferencia (DataStore) en cada operación y entrega el backend activo: cambiar la opción en Ajustes afecta a la siguiente petición, sin reiniciar la app.
+- Los modelos `Book` y `BookDetail` son `@Serializable`: el backend de disco guarda JSON, y un valor que no se pueda decodificar se trata como ausente (no crashea).
+- Los dos backends son independientes: las entradas no se migran al cambiar de opción.
+- La base de datos es `booksearch_cache.db`, una sola tabla `cache_entries` con clave compuesta `(scope, cache_key)`, donde `scope` separa búsqueda/home/detalle.
+
 ### 3. Manejo de errores
 
 `safeApiCall` traduce los errores técnicos a `DomainError`, y la UI muestra un mensaje comprensible para cada tipo:
@@ -169,7 +186,7 @@ Es una herramienta para demostrar la cancelación aunque Open Library responda r
 | Módulo | Qué cubre |
 |---|---|
 | `:domain` (MockK) | `SearchBooksUseCase`: delega, normaliza, ignora queries vacías y propaga errores. `GetBookDetailUseCase`: delega y propaga. `GetHomeContentUseCase`: carga en paralelo y tolera fallos parciales. |
-| `:data` (`FakeTimeProvider` y `FakeOpenLibraryApi` que cuenta llamadas) | **Cache**: primera búsqueda va a red; misma query dentro del TTL sin red y con `fromCache = true`; "Tolkien " y "tolkien" comparten entrada; tras el TTL vuelve a red y actualiza; un error de red no se cachea; queries distintas tienen entradas independientes; desalojo LRU; escrituras concurrentes desde varios hilos. **Serialización y mappers**: `description` como string y como objeto, campos ausentes con valores por defecto. **Errores**: mapeo a `DomainError` y `CancellationException` siempre relanzada. **Detalle**: autores en paralelo con fallo parcial y año desde el índice de búsqueda. |
+| `:data` (`FakeTimeProvider` y `FakeOpenLibraryApi` que cuenta llamadas) | **Cache**: primera búsqueda va a red; misma query dentro del TTL sin red y con `fromCache = true`; "Tolkien " y "tolkien" comparten entrada; tras el TTL vuelve a red y actualiza; un error de red no se cachea; queries distintas tienen entradas independientes; desalojo LRU; escrituras concurrentes desde varios hilos. **Cache en disco (Room)**: seleccionada la opción "Disco", segunda búsqueda sin red y con `fromCache = true`; tras el TTL vuelve a red. **Serialización y mappers**: `description` como string y como objeto, campos ausentes con valores por defecto. **Errores**: mapeo a `DomainError` y `CancellationException` siempre relanzada. **Detalle**: autores en paralelo con fallo parcial y año desde el índice de búsqueda. |
 | `:app` (`runTest`, `StandardTestDispatcher`, `MainDispatcherRule`, Turbine) | Una nueva búsqueda cancela la anterior y **solo** se emiten resultados de la última (latencia simulada con `delay` y `advanceTimeBy`). El debounce agrupa pulsaciones. Botón Cancelar → `Cancelled`. X → vuelta a la home. Lista vacía → `Empty`. Error → `Error`, y Reintentar relanza. Resultado cacheado → `Success(fromCache = true)`. También el detalle y los ajustes. |
 
 Los nombres de test están en inglés y siguen el formato *given / when / then*.

@@ -1,5 +1,6 @@
 package com.booksearch.app.testing
 
+import com.booksearch.domain.model.CacheType
 import com.booksearch.domain.model.ColorPalette
 import com.booksearch.domain.model.ThemeMode
 import com.booksearch.domain.model.UserPreferences
@@ -17,4 +18,5 @@ class FakePreferencesRepository(initial: UserPreferences = UserPreferences()) : 
     override suspend fun setThemeMode(themeMode: ThemeMode) = state.update { it.copy(themeMode = themeMode) }
     override suspend fun setColorPalette(colorPalette: ColorPalette) = state.update { it.copy(colorPalette = colorPalette) }
     override suspend fun setDemoLatencyEnabled(enabled: Boolean) = state.update { it.copy(demoLatencyEnabled = enabled) }
+    override suspend fun setCacheType(cacheType: CacheType) = state.update { it.copy(cacheType = cacheType) }
 }

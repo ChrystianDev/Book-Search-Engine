@@ -1,7 +1,12 @@
 package com.booksearch.data.repository
 
+import com.booksearch.data.cache.BookCacheStore
 import com.booksearch.data.cache.CacheConfig
+import com.booksearch.data.cache.InMemoryBookCaches
+import com.booksearch.data.cache.room.RoomBookCaches
+import com.booksearch.data.fakes.FakeCacheEntryDao
 import com.booksearch.data.fakes.FakeOpenLibraryApi
+import com.booksearch.data.fakes.FakePreferencesRepository
 import com.booksearch.data.fakes.FakeTimeProvider
 import com.booksearch.data.remote.dto.AuthorDto
 import com.booksearch.data.remote.dto.KeyRefDto
@@ -19,11 +24,15 @@ import org.junit.Test
 class BookRepositoryDetailTest {
 
     private val api = FakeOpenLibraryApi()
+    private val time = FakeTimeProvider()
 
     private fun TestScope.createRepository() = BookRepositoryImpl(
         api = api,
-        timeProvider = FakeTimeProvider(),
-        cacheConfig = CacheConfig(),
+        caches = BookCacheStore(
+            preferencesRepository = FakePreferencesRepository(),
+            inMemory = InMemoryBookCaches(time, CacheConfig()),
+            onDisk = RoomBookCaches(FakeCacheEntryDao(), time, CacheConfig()),
+        ),
         ioDispatcher = StandardTestDispatcher(testScheduler),
     )
 

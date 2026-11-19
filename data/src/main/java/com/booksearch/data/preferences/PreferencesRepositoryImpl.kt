@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.booksearch.domain.model.CacheType
 import com.booksearch.domain.model.ColorPalette
 import com.booksearch.domain.model.ThemeMode
 import com.booksearch.domain.model.UserPreferences
@@ -45,6 +46,10 @@ class PreferencesRepositoryImpl @Inject constructor(
         dataStore.edit { it[Keys.DEMO_LATENCY] = enabled }
     }
 
+    override suspend fun setCacheType(cacheType: CacheType) {
+        dataStore.edit { it[Keys.CACHE_TYPE] = cacheType.name }
+    }
+
     private fun Preferences.toUserPreferences(): UserPreferences {
         val defaults = UserPreferences()
         return UserPreferences(
@@ -52,6 +57,7 @@ class PreferencesRepositoryImpl @Inject constructor(
             themeMode = enumValueOrDefault(this[Keys.THEME_MODE], defaults.themeMode),
             colorPalette = enumValueOrDefault(this[Keys.COLOR_PALETTE], defaults.colorPalette),
             demoLatencyEnabled = this[Keys.DEMO_LATENCY] ?: defaults.demoLatencyEnabled,
+            cacheType = enumValueOrDefault(this[Keys.CACHE_TYPE], defaults.cacheType),
         )
     }
 
@@ -63,5 +69,6 @@ class PreferencesRepositoryImpl @Inject constructor(
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val COLOR_PALETTE = stringPreferencesKey("color_palette")
         val DEMO_LATENCY = booleanPreferencesKey("demo_latency_enabled")
+        val CACHE_TYPE = stringPreferencesKey("cache_type")
     }
 }

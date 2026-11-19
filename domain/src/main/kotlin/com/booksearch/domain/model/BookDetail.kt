@@ -1,5 +1,7 @@
 package com.booksearch.domain.model
 
+/** Cached as JSON by the disk cache (Room). */
+@kotlinx.serialization.Serializable
 data class BookDetail(
     val workId: String,
     val title: String,

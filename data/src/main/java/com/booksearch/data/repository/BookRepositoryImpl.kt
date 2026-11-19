@@ -1,8 +1,7 @@
 package com.booksearch.data.repository
 
 import com.booksearch.data.LOG_TAG
-import com.booksearch.data.cache.CacheConfig
-import com.booksearch.data.cache.InMemoryCache
+import com.booksearch.data.cache.BookCacheStore
 import com.booksearch.data.di.IoDispatcher
 import com.booksearch.data.error.safeApiCall
 import com.booksearch.data.mapper.authorIds
@@ -15,7 +14,6 @@ import com.booksearch.domain.model.BookDetail
 import com.booksearch.domain.model.BookSubject
 import com.booksearch.domain.model.SearchResult
 import com.booksearch.domain.repository.BookRepository
-import com.booksearch.domain.time.TimeProvider
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -28,23 +26,22 @@ import javax.inject.Singleton
 /**
  * Cache-first repository: a valid cached entry is returned without touching the network;
  * a missing or expired one is fetched, stored and returned. Failed requests are never cached.
+ *
+ * The cache backend (memory or disk/Room) is chosen per operation by [BookCacheStore],
+ * following the user preference set in Settings.
  */
 @Singleton
 class BookRepositoryImpl @Inject constructor(
     private val api: OpenLibraryApi,
-    timeProvider: TimeProvider,
-    cacheConfig: CacheConfig,
+    private val caches: BookCacheStore,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : BookRepository {
 
-    private val searchCache = InMemoryCache<String, List<Book>>(timeProvider, cacheConfig.ttlMillis, cacheConfig.maxEntries)
-    private val homeCache = InMemoryCache<String, List<Book>>(timeProvider, cacheConfig.ttlMillis, cacheConfig.maxEntries)
-    private val detailCache = InMemoryCache<String, BookDetail>(timeProvider, cacheConfig.ttlMillis, cacheConfig.maxEntries)
-
     override suspend fun searchBooks(query: String): SearchResult = withContext(ioDispatcher) {
         val cacheKey = query.toCacheKey()
+        val cache = caches.current().search
 
-        val cached = searchCache.get(cacheKey)
+        val cached = cache.get(cacheKey)
         if (cached != null) {
             Timber.tag(LOG_TAG).d("cache hit: \"%s\" (%d books)", cacheKey, cached.size)
             return@withContext SearchResult(query, cached, fromCache = true)
@@ -54,7 +51,7 @@ class BookRepositoryImpl @Inject constructor(
         val books = logged("search \"$query\"") {
             api.search(query).docs.mapNotNull { it.toDomain() }
         }
-        searchCache.put(cacheKey, books)
+        cache.put(cacheKey, books)
         SearchResult(query, books, fromCache = false)
     }
 
@@ -69,7 +66,8 @@ class BookRepositoryImpl @Inject constructor(
         }
 
     override suspend fun getBookDetail(workId: String): BookDetail = withContext(ioDispatcher) {
-        detailCache.get(workId)?.let { return@withContext it }
+        val cache = caches.current().detail
+        cache.get(workId)?.let { return@withContext it }
 
         coroutineScope {
             // Many works lack `first_publish_date`; the search index always has the year.
@@ -82,7 +80,7 @@ class BookRepositoryImpl @Inject constructor(
             val detail = work.toDomain(workId, authorNames, searchYear.await())
 
             // Only cache complete details, so a transient author failure is retried next time.
-            if (authorNames.size == authorIds.size) detailCache.put(workId, detail)
+            if (authorNames.size == authorIds.size) cache.put(workId, detail)
             detail
         }
     }
@@ -114,7 +112,8 @@ class BookRepositoryImpl @Inject constructor(
 
     private suspend fun cachedHomeList(key: String, fetch: suspend () -> List<Book>): List<Book> =
         withContext(ioDispatcher) {
-            homeCache.get(key) ?: logged("home \"$key\"") { fetch() }.also { homeCache.put(key, it) }
+            val cache = caches.current().home
+            cache.get(key) ?: logged("home \"$key\"") { fetch() }.also { cache.put(key, it) }
         }
 
     private suspend fun <T> logged(label: String, block: suspend () -> T): T {

@@ -19,7 +19,7 @@ class InMemoryCache<K : Any, V : Any>(
     private val timeProvider: TimeProvider,
     private val ttlMillis: Long = DEFAULT_TTL_MILLIS,
     private val maxEntries: Int = DEFAULT_MAX_ENTRIES,
-) {
+) : KeyValueCache<K, V> {
     private class Entry<V>(val value: V, val storedAtMillis: Long)
 
     private val mutex = Mutex()
@@ -31,7 +31,7 @@ class InMemoryCache<K : Any, V : Any>(
     }
 
     /** Returns the cached value, or null if it is absent or expired (expired entries are removed). */
-    suspend fun get(key: K): V? = mutex.withLock {
+    override suspend fun get(key: K): V? = mutex.withLock {
         val entry = entries[key] ?: return@withLock null
         if (entry.isExpired()) {
             entries.remove(key)
@@ -41,7 +41,7 @@ class InMemoryCache<K : Any, V : Any>(
         }
     }
 
-    suspend fun put(key: K, value: V) = mutex.withLock {
+    override suspend fun put(key: K, value: V) = mutex.withLock {
         entries[key] = Entry(value, timeProvider.currentTimeMillis())
         if (entries.size > maxEntries) {
             val eldestKey = entries.keys.first()
@@ -55,7 +55,7 @@ class InMemoryCache<K : Any, V : Any>(
         timeProvider.currentTimeMillis() - storedAtMillis >= ttlMillis
 
     companion object {
-        const val DEFAULT_TTL_MILLIS: Long = 3 * 60 * 1_000L
+        const val DEFAULT_TTL_MILLIS: Long = 10 * 60 * 1_000L
         const val DEFAULT_MAX_ENTRIES: Int = 50
     }
 }

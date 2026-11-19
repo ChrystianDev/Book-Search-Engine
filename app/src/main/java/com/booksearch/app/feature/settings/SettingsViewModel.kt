@@ -3,6 +3,7 @@ package com.booksearch.app.feature.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.booksearch.app.di.BuildInfo
+import com.booksearch.domain.model.CacheType
 import com.booksearch.domain.model.ColorPalette
 import com.booksearch.domain.model.ThemeMode
 import com.booksearch.domain.repository.PreferencesRepository
@@ -28,6 +29,7 @@ class SettingsViewModel @Inject constructor(
             SettingsUiState(
                 colorPalette = preferences.colorPalette,
                 themeMode = preferences.themeMode,
+                cacheType = preferences.cacheType,
                 demoLatencyEnabled = preferences.demoLatencyEnabled,
                 showDemoLatency = showDemoLatency,
             )
@@ -46,6 +48,10 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { preferencesRepository.setThemeMode(themeMode) }
     }
 
+    fun onCacheTypeSelected(cacheType: CacheType) {
+        viewModelScope.launch { preferencesRepository.setCacheType(cacheType) }
+    }
+
     fun onDemoLatencyChanged(enabled: Boolean) {
         if (!showDemoLatency) return
         viewModelScope.launch { preferencesRepository.setDemoLatencyEnabled(enabled) }
@@ -55,6 +61,7 @@ class SettingsViewModel @Inject constructor(
 data class SettingsUiState(
     val colorPalette: ColorPalette = ColorPalette.LIBRARY,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    val cacheType: CacheType = CacheType.MEMORY,
     val demoLatencyEnabled: Boolean = false,
     /** Demo latency is a debug-only tool: the option does not exist in release builds. */
     val showDemoLatency: Boolean = false,
