@@ -34,6 +34,13 @@ dependencies {
     implementation(project(":domain"))
 
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.kotlinx.serialization)
+    implementation(libs.okhttp)
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.timber)
+    debugImplementation(libs.okhttp.logging)
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
 

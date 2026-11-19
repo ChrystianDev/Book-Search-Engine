@@ -8,6 +8,7 @@ fun aBook(id: String = "OL1W", title: String = "The Hobbit") = Book(
     title = title,
     authors = listOf("J.R.R. Tolkien"),
     firstPublishYear = 1937,
+    editionCount = 1,
     coverUrl = null,
 )
 
