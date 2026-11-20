@@ -102,9 +102,9 @@ Requisito: *si el usuario lanza una nueva búsqueda antes de que termine la ante
 
 Funcionamiento:
 
-1. Cada vez que cambia el texto, se normaliza la query (`trim`). Si queda vacía se ignora y se vuelve a la home. Si solo ha cambiado el espacio final, no se repite la búsqueda.
+1. Cada vez que cambia el texto, se normaliza la query (`trim`). Si queda vacía se ignora y se vuelve a la home. Si tiene **menos de 3 caracteres** no se busca: se cancela la búsqueda en curso y se muestra *"Escribe al menos 3 caracteres para buscar"* (ver más abajo). Si solo ha cambiado el espacio final, no se repite la búsqueda.
 2. Se cancela el job anterior y el estado pasa **inmediatamente** a `Loading(query)`. Así nunca quedan en pantalla resultados de una query anterior.
-3. El nuevo job ejecuta primero el **debounce** (`delay(300 ms)`) y después la búsqueda. Cancelar el job cancela el `delay` o la llamada suspendida de Retrofit y, con ella, **la petición de OkHttp**. En Logcat aparece `HTTP FAILED: Socket closed`.
+3. El nuevo job ejecuta primero el **debounce** (`delay(600 ms)`) y después la búsqueda. Cancelar el job cancela el `delay` o la llamada suspendida de Retrofit y, con ella, **la petición de OkHttp**. En Logcat aparece `HTTP FAILED: Socket closed`.
 4. Solo el resultado de la query que se está cargando puede sustituir el estado. Una coroutine cancelada no llega a ese punto, pero la comprobación deja la regla explícita.
 
 Formas de cancelar una búsqueda:
@@ -114,9 +114,12 @@ Formas de cancelar una búsqueda:
 | Escribir otra búsqueda | Cancela la anterior automáticamente. |
 | Botón **Cancelar** | Cancela y pasa a `Cancelled(query)`, o a la home si el campo está vacío. |
 | Botón **X** | Cancela y vuelve a la home de descubrimiento. |
+| Dejar menos de 3 caracteres | Cancela y pasa a `TooShort(query)`, que muestra la pista de 3 caracteres. |
 | Salir de la pantalla | `viewModelScope` cancela todo. |
 
-**El debounce es corto (300 ms) a propósito.** Así una petición suele seguir en vuelo cuando llega la siguiente pulsación, y se ven **cancelaciones reales de red**, no solo descartes del debounce. Los logs distinguen los dos casos: `search cancelled: "x" in flight` frente a `search discarded during debounce`.
+**Mínimo de 3 caracteres.** Open Library rechaza las búsquedas más cortas con un **HTTP 422** (`"Query too short, must be at least 3 characters"`). Antes la app las enviaba y mostraba un falso *"Open Library no está disponible"*. Lo descubrió el registro de búsquedas (apartado 2c): al escribir `python` de corrido aparecieron dos fallos de `py`. La regla vive en el dominio (`SearchBooksUseCase.MIN_QUERY_LENGTH`), así que esas búsquedas no llegan al repositorio, no hacen petición y no aparecen en el registro.
+
+**Debounce de 600 ms.** Empezó en 300 ms para que una petición siguiera en vuelo al llegar la siguiente pulsación y se vieran cancelaciones reales de red. En un teclado de móvil, sin embargo, 300 ms entre letras es una pausa normal, así que una palabra escrita de corrido lanzaba búsquedas a medias (`py`, `pyth`…). Con 600 ms una palabra escrita seguida produce una sola búsqueda. Sigue habiendo cancelaciones reales cuando el usuario se para a mitad de palabra, y el modo demo de latencia (apartado 4) las hace fáciles de ver. Los logs distinguen los dos casos: `search cancelled: "x" in flight` frente a `search discarded during debounce`.
 
 **Nunca se captura `CancellationException` como error:**
 
@@ -174,8 +177,12 @@ En *Ajustes → Peticiones / Búsquedas*, el botón *Info estado* abre un bottom
 - **Dónde se registra**: `BookRepositoryImpl.searchBooks` envuelve cada búsqueda en `SearchLog.track`, que mide el tiempo con el `TimeProvider` y anota cómo terminó. Ahí ya se sabe todo: el número de libros, si vino de la caché y el `DomainError` ya traducido. Un interceptor de OkHttp no vería las búsquedas servidas desde la caché ni el número de libros.
 - **Cancelaciones**: `track` captura `CancellationException` solo para anotarla y la **relanza** (regla 7 de [ARCHITECTURE](ARCHITECTURE.md)). Registrar nunca cambia cómo termina una búsqueda. Las búsquedas descartadas durante el debounce no aparecen, porque nunca empezaron.
 - **Se incluyen las búsquedas servidas desde la caché**, marcadas con origen *Caché*, para que se vea la caché en acción.
+- **Ejemplo real.** Esta captura sirvió de evidencia para dos cambios: los dos *Fallo* de `py` eran HTTP 422 de la API (de ahí el mínimo de 3 caracteres), y `get`/`javas` se lanzaron y se cancelaron mientras se escribía de corrido (de ahí el debounce de 600 ms). Ver apartado 1.
+
+  ![Registro de peticiones / búsquedas](docs/screenshots/info_estado_busquedas.png)
+
 - **En memoria**: se guardan las últimas 50 entradas y se pierden al cerrar la app, porque es una herramienta de diagnóstico de la sesión. El botón *Vaciar* las borra.
-- **Colores**: `StatusColors` en `ui/theme`, con variante clara y oscura y contraste de al menos 4,5:1, iguales en las tres paletas. El color siempre va acompañado de la etiqueta escrita ("ÉXITO", "CANCELADA", "FALLO"), para no depender solo de él.
+- **Colores**: `StatusColors` en `ui/theme`, con variante clara y oscura, iguales en las tres paletas. *Cancelada* es ámbar y no naranja oscuro, porque el naranja oscuro se confundía con el rojo de *Fallo*. El ámbar claro tiene un contraste de ≈3:1 (los demás superan 4,5:1), y por eso el color siempre va acompañado de la etiqueta escrita ("ÉXITO", "CANCELADA", "FALLO"): el significado no depende solo de él.
 - **Simular un fallo (solo `debug`)**: Open Library no falla a demanda, así que una búsqueda cuyo texto contenga `getfail001` (en cualquier combinación de mayúsculas y minúsculas) recibe un **HTTP 404** de `SimulatedFailureInterceptor` (`data/src/debug`) sin llegar a la red. El fallo sigue el camino real: `HttpException` → `DomainError.Server(404)` → pantalla de error con *Reintentar* → fila roja en el registro. También aparece en Logcat (`okhttp.OkHttpClient`). En `release` el interceptor no existe y el sheet no menciona `getfail001`.
 
 ### 3. Manejo de errores
@@ -223,9 +230,9 @@ Es una herramienta para demostrar la cancelación aunque Open Library responda r
 
 | Módulo | Qué cubre |
 |---|---|
-| `:domain` (MockK) | `SearchBooksUseCase`: delega, normaliza, ignora queries vacías y propaga errores. `GetBookDetailUseCase`: delega y propaga. `GetHomeContentUseCase`: carga en paralelo y tolera fallos parciales. |
+| `:domain` (MockK) | `SearchBooksUseCase`: delega, normaliza, ignora queries vacías o de menos de 3 caracteres (con 3 sí busca) y propaga errores. `GetBookDetailUseCase`: delega y propaga. `GetHomeContentUseCase`: carga en paralelo y tolera fallos parciales. |
 | `:data` (`FakeTimeProvider`, `FakeOpenLibraryApi` que cuenta llamadas y Robolectric para Room) | **Cache**: primera búsqueda va a red; misma query dentro del TTL sin red y con `fromCache = true`; "Tolkien " y "tolkien" comparten entrada; tras el TTL vuelve a red y actualiza; un error de red no se cachea; queries distintas tienen entradas independientes; desalojo LRU en memoria; escrituras concurrentes desde varios hilos. **Cache en disco (Room)**: seleccionada la opción "Disco", segunda búsqueda sin red y con `fromCache = true`; tras el TTL vuelve a red; un fallo de SQLite se trata como "no está en la cache" y la app no crashea; un JSON que ya no encaja o no es válido también. **Room real** (`CacheEntryDaoTest`, `RoomCacheIntegrationTest`, sobre SQLite en memoria con Robolectric): la clave compuesta (mismo `cache_key` en dos `scope`), `upsert` reemplaza, `getAll`/`count` por `scope`, `deleteOldest` borra por `stored_at_millis` y solo en su `scope`, y en `RoomCache` el límite de entradas (FIFO: leer una entrada no la libra del desalojo) y el TTL. **Registro de búsquedas** (`SearchLogTest`): éxito con número de libros, origen y duración; un fallo se anota y se relanza el mismo error; una cancelación se anota con su tiempo y se sigue propagando; solo se guardan las 50 últimas, la más reciente primero; *Vaciar*. El repositorio registra búsquedas de red, de la caché y fallidas. `getfail001` devuelve 404 en cualquier combinación de mayúsculas y minúsculas, y solo en búsquedas. **Serialización y mappers**: `description` como string y como objeto, campos ausentes con valores por defecto. **Errores**: mapeo a `DomainError` y `CancellationException` siempre relanzada. **Detalle**: autores en paralelo con fallo parcial y año desde el índice de búsqueda. |
-| `:app` (`runTest`, `StandardTestDispatcher`, `MainDispatcherRule`, Turbine) | Una nueva búsqueda cancela la anterior y **solo** se emiten resultados de la última (latencia simulada con `delay` y `advanceTimeBy`). El debounce agrupa pulsaciones. Botón Cancelar → `Cancelled`. X → vuelta a la home. Lista vacía → `Empty`. Error → `Error`, y Reintentar relanza. Resultado cacheado → `Success(fromCache = true)`. También el detalle y los ajustes, y el registro de búsquedas: se muestra, se actualiza en vivo y se vacía. La pista de `getfail001` solo aparece en `debug`. |
+| `:app` (`runTest`, `StandardTestDispatcher`, `MainDispatcherRule`, Turbine) | Una nueva búsqueda cancela la anterior y **solo** se emiten resultados de la última (latencia simulada con `delay` y `advanceTimeBy`). El debounce agrupa pulsaciones. Botón Cancelar → `Cancelled`. X → vuelta a la home. Lista vacía → `Empty`. Menos de 3 caracteres → `TooShort` sin petición, y si había una búsqueda en curso se cancela. Error → `Error`, y Reintentar relanza. Resultado cacheado → `Success(fromCache = true)`. También el detalle y los ajustes, y el registro de búsquedas: se muestra, se actualiza en vivo y se vacía. La pista de `getfail001` solo aparece en `debug`. |
 
 Robolectric simula el framework de Android en la JVM, así que estos tests corren con `./gradlew test`, sin emulador. Se usa solo donde hace falta Android de verdad: el SQL que genera Room y las dos clases de tests que crean `SQLiteException` para simular fallos de disco. El resto de tests de `:data` son JUnit puro.
 
@@ -276,7 +283,7 @@ Términos técnicos que aparecen en este README y en [ARCHITECTURE.md](ARCHITECT
 | **Coroutine** | Unidad de trabajo asíncrono de Kotlin: puede suspenderse sin bloquear un hilo y cancelarse. | Toda la red, la cache y los ViewModels. |
 | **DAO** (Data Access Object) | Interfaz con las consultas a la base de datos; Room genera su implementación. | `CacheEntryDao`. |
 | **DataStore** | Almacén de preferencias clave-valor de AndroidX, asíncrono (sustituye a `SharedPreferences`). | Tema, backend de cache, onboarding, modo demo. |
-| **Debounce** | Esperar a que el usuario deje de teclear un momento antes de actuar. | 300 ms antes de lanzar la búsqueda. |
+| **Debounce** | Esperar a que el usuario deje de teclear un momento antes de actuar. | 600 ms antes de lanzar la búsqueda. |
 | **Decorador** | Patrón que envuelve un objeto con otro de la misma interfaz para añadir comportamiento. | Se descartó un `CachedBookRepository` decorador (ver *2. Cache*). |
 | **Design system** | Conjunto de colores, tipografía, formas y medidas que comparte toda la UI. | `ui/theme`, con tres paletas. |
 | **DI** (Dependency Injection) | Que un objeto reciba sus dependencias desde fuera en lugar de crearlas. | Con Hilt. |
