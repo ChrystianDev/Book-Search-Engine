@@ -10,8 +10,13 @@ import kotlinx.coroutines.sync.withLock
 import timber.log.Timber
 
 /**
- * Disk-backed [KeyValueCache] on Room, mirroring the policy of [InMemoryCache][com.booksearch.data.cache.InMemoryCache]:
- * the same TTL per entry and the same LRU entry limit. Values are stored as JSON.
+ * Disk-backed [KeyValueCache] on Room, with the same TTL per entry and the same entry limit as
+ * [InMemoryCache][com.booksearch.data.cache.InMemoryCache]. Values are stored as JSON.
+ *
+ * Eviction is FIFO, not LRU: when the limit is exceeded the entry *stored* longest ago goes,
+ * and reading an entry does not renew it. `stored_at_millis` also drives the TTL, so refreshing
+ * it on read would extend expiration; true LRU would need a separate last-access column and a
+ * write on every read, which is not worth it with a 3-minute TTL.
  *
  * Expiration is checked on read (like the in-memory cache): an expired entry is deleted and
  * treated as absent, so nothing needs to be cleaned up on app start. The write time is

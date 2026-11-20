@@ -16,7 +16,7 @@ interface KeyValueCache<K : Any, V : Any> {
 
     /**
      * Every stored entry, expired ones included (expiration is lazy: they are only removed
-     * when read). Read-only: it neither removes entries nor changes the LRU order.
+     * when read). Read-only: it neither removes entries nor changes the eviction order.
      */
     suspend fun snapshot(): List<CacheSnapshotEntry<K, V>>
 }

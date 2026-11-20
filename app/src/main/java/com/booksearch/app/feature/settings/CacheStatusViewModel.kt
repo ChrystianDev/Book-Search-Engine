@@ -17,7 +17,7 @@ import javax.inject.Inject
  * Backs the "Info estado" sheet: the cached searches of the active backend with a live countdown.
  *
  * The cache is re-read on every tick, so the list follows what really happens while the sheet is
- * open (a repeated search restarts its countdown, an LRU eviction removes a row, a backend switch
+ * open (a repeated search restarts its countdown, an eviction removes a row, a backend switch
  * shows the other cache). The ticker only runs while the sheet collects the state.
  */
 @HiltViewModel

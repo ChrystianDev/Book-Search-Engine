@@ -23,7 +23,7 @@ interface CacheEntryDao {
     @Query("SELECT COUNT(*) FROM cache_entries WHERE scope = :scope")
     suspend fun count(scope: String): Int
 
-    /** Evicts the oldest entries of a scope, used to enforce the LRU limit. */
+    /** Evicts the oldest stored entries of a scope (FIFO), used to enforce the entry limit. */
     @Query(
         """
         DELETE FROM cache_entries WHERE scope = :scope AND cache_key IN (
