@@ -75,14 +75,14 @@ MVVM con separación estricta en tres módulos Gradle:
 graph LR
     app[":app<br/>Compose · ViewModels · navegación · design system"] --> domain
     app --> data
-    data[":data<br/>Retrofit · DTOs · mappers · cache (memoria y Room) · DataStore · Hilt"] --> domain
+    data[":data<br/>Retrofit · DTOs · mappers · cache (memoria y Room) · registro de búsquedas · DataStore · Hilt"] --> domain
     domain[":domain<br/>Kotlin puro (JVM)<br/>modelos · repositorios · casos de uso · errores · TimeProvider"]
 ```
 
 | Módulo | Contenido | Reglas |
 |---|---|---|
 | `:domain` | `Book`, `BookDetail`, `SearchResult(fromCache)`, `HomeContent`, `UserPreferences`; interfaces `BookRepository` y `PreferencesRepository`; `SearchBooksUseCase`, `GetBookDetailUseCase`, `GetHomeContentUseCase`; `DomainError` y `TimeProvider`. | Módulo `kotlin("jvm")`: **ninguna dependencia de Android**. |
-| `:data` | `OpenLibraryApi`, DTOs, `TextValueSerializer`, mappers, `InMemoryCache`, cache en disco con Room (`RoomCache`, `BookCacheStore`), `BookRepositoryImpl`, `PreferencesRepositoryImpl` (DataStore), interceptores y módulos Hilt. | Los DTOs **nunca salen** de este módulo. Los nulls de la API se convierten aquí en valores por defecto o en tipos opcionales explícitos. |
+| `:data` | `OpenLibraryApi`, DTOs, `TextValueSerializer`, mappers, `InMemoryCache`, cache en disco con Room (`RoomCache`, `BookCacheStore`), `SearchLog`, `BookRepositoryImpl`, `PreferencesRepositoryImpl` (DataStore), interceptores y módulos Hilt. | Los DTOs **nunca salen** de este módulo. Los nulls de la API se convierten aquí en valores por defecto o en tipos opcionales explícitos. |
 | `:app` | Pantallas Compose, ViewModels, navegación type-safe y design system (`ui/theme`). | Cada pantalla expone **un único `StateFlow<UiState>`** inmutable y recibe las intenciones del usuario mediante funciones. |
 
 Otras decisiones:
@@ -161,6 +161,23 @@ Cómo está montado:
 
 **Info estado.** Junto al título *Caché* de Ajustes, el botón *Info estado* abre un bottom sheet con las búsquedas **con resultados** guardadas en el backend activo y una cuenta atrás en tiempo real (`mm:ss`). Las ya caducadas no se borran de la lista: se muestran en gris con `0:00` y van al final, porque la expiración es perezosa y siguen guardadas hasta que esa búsqueda se vuelve a leer. El texto mostrado es la clave normalizada (sin espacios y en minúsculas). El `CacheStatusViewModel` vuelve a leer la cache cada segundo (`KeyValueCache.snapshot()`, que no altera el orden de desalojo) solo mientras el sheet está visible.
 
+### 2c. Registro de peticiones / búsquedas
+
+En *Ajustes → Peticiones / Búsquedas*, el botón *Info estado* abre un bottom sheet con las últimas búsquedas de la sesión, la más reciente arriba. Cada fila muestra el estado, el texto buscado y la hora. Al tocarla se despliega el detalle, como un `ExpandableListView` del sistema de vistas clásico, pero hecho en Compose (`LazyColumn` + `AnimatedVisibility`):
+
+| Estado | Color | Detalle |
+|---|---|---|
+| **Éxito** | teal | Libros devueltos, duración y origen (red o caché). |
+| **Cancelada** | naranja oscuro | Tiempo desde que empezó hasta que se canceló. |
+| **Fallo** | rojo | Tipo de error (`HTTP 404`, sin conexión, tiempo agotado…) y duración. |
+
+- **Dónde se registra**: `BookRepositoryImpl.searchBooks` envuelve cada búsqueda en `SearchLog.track`, que mide el tiempo con el `TimeProvider` y anota cómo terminó. Ahí ya se sabe todo: el número de libros, si vino de la caché y el `DomainError` ya traducido. Un interceptor de OkHttp no vería las búsquedas servidas desde la caché ni el número de libros.
+- **Cancelaciones**: `track` captura `CancellationException` solo para anotarla y la **relanza** (regla 7 de [ARCHITECTURE](ARCHITECTURE.md)). Registrar nunca cambia cómo termina una búsqueda. Las búsquedas descartadas durante el debounce no aparecen, porque nunca empezaron.
+- **Se incluyen las búsquedas servidas desde la caché**, marcadas con origen *Caché*, para que se vea la caché en acción.
+- **En memoria**: se guardan las últimas 50 entradas y se pierden al cerrar la app, porque es una herramienta de diagnóstico de la sesión. El botón *Vaciar* las borra.
+- **Colores**: `StatusColors` en `ui/theme`, con variante clara y oscura y contraste de al menos 4,5:1, iguales en las tres paletas. El color siempre va acompañado de la etiqueta escrita ("ÉXITO", "CANCELADA", "FALLO"), para no depender solo de él.
+- **Simular un fallo (solo `debug`)**: Open Library no falla a demanda, así que una búsqueda cuyo texto contenga `getfail001` (en cualquier combinación de mayúsculas y minúsculas) recibe un **HTTP 404** de `SimulatedFailureInterceptor` (`data/src/debug`) sin llegar a la red. El fallo sigue el camino real: `HttpException` → `DomainError.Server(404)` → pantalla de error con *Reintentar* → fila roja en el registro. También aparece en Logcat (`okhttp.OkHttpClient`). En `release` el interceptor no existe y el sheet no menciona `getfail001`.
+
 ### 3. Manejo de errores
 
 `safeApiCall` traduce los errores técnicos a `DomainError`, y la UI muestra un mensaje comprensible para cada tipo:
@@ -207,8 +224,8 @@ Es una herramienta para demostrar la cancelación aunque Open Library responda r
 | Módulo | Qué cubre |
 |---|---|
 | `:domain` (MockK) | `SearchBooksUseCase`: delega, normaliza, ignora queries vacías y propaga errores. `GetBookDetailUseCase`: delega y propaga. `GetHomeContentUseCase`: carga en paralelo y tolera fallos parciales. |
-| `:data` (`FakeTimeProvider`, `FakeOpenLibraryApi` que cuenta llamadas y Robolectric para Room) | **Cache**: primera búsqueda va a red; misma query dentro del TTL sin red y con `fromCache = true`; "Tolkien " y "tolkien" comparten entrada; tras el TTL vuelve a red y actualiza; un error de red no se cachea; queries distintas tienen entradas independientes; desalojo LRU en memoria; escrituras concurrentes desde varios hilos. **Cache en disco (Room)**: seleccionada la opción "Disco", segunda búsqueda sin red y con `fromCache = true`; tras el TTL vuelve a red; un fallo de SQLite se trata como "no está en la cache" y la app no crashea; un JSON que ya no encaja o no es válido también. **Room real** (`CacheEntryDaoTest`, `RoomCacheIntegrationTest`, sobre SQLite en memoria con Robolectric): la clave compuesta (mismo `cache_key` en dos `scope`), `upsert` reemplaza, `getAll`/`count` por `scope`, `deleteOldest` borra por `stored_at_millis` y solo en su `scope`, y en `RoomCache` el límite de entradas (FIFO: leer una entrada no la libra del desalojo) y el TTL. **Serialización y mappers**: `description` como string y como objeto, campos ausentes con valores por defecto. **Errores**: mapeo a `DomainError` y `CancellationException` siempre relanzada. **Detalle**: autores en paralelo con fallo parcial y año desde el índice de búsqueda. |
-| `:app` (`runTest`, `StandardTestDispatcher`, `MainDispatcherRule`, Turbine) | Una nueva búsqueda cancela la anterior y **solo** se emiten resultados de la última (latencia simulada con `delay` y `advanceTimeBy`). El debounce agrupa pulsaciones. Botón Cancelar → `Cancelled`. X → vuelta a la home. Lista vacía → `Empty`. Error → `Error`, y Reintentar relanza. Resultado cacheado → `Success(fromCache = true)`. También el detalle y los ajustes. |
+| `:data` (`FakeTimeProvider`, `FakeOpenLibraryApi` que cuenta llamadas y Robolectric para Room) | **Cache**: primera búsqueda va a red; misma query dentro del TTL sin red y con `fromCache = true`; "Tolkien " y "tolkien" comparten entrada; tras el TTL vuelve a red y actualiza; un error de red no se cachea; queries distintas tienen entradas independientes; desalojo LRU en memoria; escrituras concurrentes desde varios hilos. **Cache en disco (Room)**: seleccionada la opción "Disco", segunda búsqueda sin red y con `fromCache = true`; tras el TTL vuelve a red; un fallo de SQLite se trata como "no está en la cache" y la app no crashea; un JSON que ya no encaja o no es válido también. **Room real** (`CacheEntryDaoTest`, `RoomCacheIntegrationTest`, sobre SQLite en memoria con Robolectric): la clave compuesta (mismo `cache_key` en dos `scope`), `upsert` reemplaza, `getAll`/`count` por `scope`, `deleteOldest` borra por `stored_at_millis` y solo en su `scope`, y en `RoomCache` el límite de entradas (FIFO: leer una entrada no la libra del desalojo) y el TTL. **Registro de búsquedas** (`SearchLogTest`): éxito con número de libros, origen y duración; un fallo se anota y se relanza el mismo error; una cancelación se anota con su tiempo y se sigue propagando; solo se guardan las 50 últimas, la más reciente primero; *Vaciar*. El repositorio registra búsquedas de red, de la caché y fallidas. `getfail001` devuelve 404 en cualquier combinación de mayúsculas y minúsculas, y solo en búsquedas. **Serialización y mappers**: `description` como string y como objeto, campos ausentes con valores por defecto. **Errores**: mapeo a `DomainError` y `CancellationException` siempre relanzada. **Detalle**: autores en paralelo con fallo parcial y año desde el índice de búsqueda. |
+| `:app` (`runTest`, `StandardTestDispatcher`, `MainDispatcherRule`, Turbine) | Una nueva búsqueda cancela la anterior y **solo** se emiten resultados de la última (latencia simulada con `delay` y `advanceTimeBy`). El debounce agrupa pulsaciones. Botón Cancelar → `Cancelled`. X → vuelta a la home. Lista vacía → `Empty`. Error → `Error`, y Reintentar relanza. Resultado cacheado → `Success(fromCache = true)`. También el detalle y los ajustes, y el registro de búsquedas: se muestra, se actualiza en vivo y se vacía. La pista de `getfail001` solo aparece en `debug`. |
 
 Robolectric simula el framework de Android en la JVM, así que estos tests corren con `./gradlew test`, sin emulador. Se usa solo donde hace falta Android de verdad: el SQL que genera Room y las dos clases de tests que crean `SQLiteException` para simular fallos de disco. El resto de tests de `:data` son JUnit puro.
 
@@ -270,6 +287,7 @@ Términos técnicos que aparecen en este README y en [ARCHITECTURE.md](ARCHITECT
 | **Entidad** (`@Entity`) | Clase que Room convierte en una tabla. | `CacheEntryEntity` → tabla `cache_entries`. |
 | **Esquema / migración** | El esquema es la estructura de las tablas; una migración transforma un esquema antiguo en el nuevo sin perder datos. | No hay migraciones: ante un cambio de esquema la base de datos se recrea. |
 | **Expiración perezosa** (lazy) | Una entrada caducada no se borra cuando caduca, sino la próxima vez que alguien la lee. | Las dos caches. |
+| **ExpandableListView** | Lista del sistema de vistas clásico (XML) cuyas filas se despliegan para mostrar su detalle. Compose no tiene un equivalente directo. | El registro de búsquedas reproduce ese comportamiento con `LazyColumn` + `AnimatedVisibility`. |
 | **Fake** | Implementación simplificada y real de una interfaz, usada en tests en lugar de un mock. | `FakeTimeProvider`, `FakeOpenLibraryApi`, `FakeCacheEntryDao`. |
 | **FIFO** (First In, First Out) | Política de desalojo: sale primero lo que entró primero, aunque se haya usado hace poco. | La cache en disco. |
 | **`flatMapLatest`** | Operador de `Flow` que cancela el trabajo anterior cuando llega un valor nuevo. | Se descartó a favor de un `Job` explícito. |
@@ -278,7 +296,7 @@ Términos técnicos que aparecen en este README y en [ARCHITECTURE.md](ARCHITECT
 | **Gradle** | Herramienta de build del proyecto; el *wrapper* (`./gradlew`) descarga la versión correcta. | Proyecto multimódulo con catálogo de versiones. |
 | **Hilt** | Librería de inyección de dependencias para Android, basada en Dagger. | Monta el grafo de toda la app. |
 | **Hito** | Entrega parcial de la prueba técnica. | Hito 1 implementado; Hito 2 fuera de alcance. |
-| **Interceptor** | Pieza de OkHttp que ve y puede modificar cada petición y respuesta. | `User-Agent`, logging y `DemoLatencyInterceptor`. |
+| **Interceptor** | Pieza de OkHttp que ve y puede modificar cada petición y respuesta. | `User-Agent`, logging, `DemoLatencyInterceptor` y `SimulatedFailureInterceptor`. |
 | **Job** | Referencia a una coroutine en marcha que permite cancelarla. | `searchJob` en el ViewModel de búsqueda. |
 | **JSON** | Formato de texto para datos estructurados. | Respuestas de la API y valores guardados en la cache en disco. |
 | **Jetpack Compose** | Toolkit declarativo de Android para construir la UI en Kotlin. | Todas las pantallas. |

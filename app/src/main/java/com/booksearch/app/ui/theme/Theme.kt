@@ -9,7 +9,8 @@ import com.booksearch.domain.model.ColorPalette
 import com.booksearch.domain.model.ThemeMode
 
 /**
- * App design system: brand palette (light/dark), Nunito Sans type scale, shapes and spacing.
+ * App design system: brand palette (light/dark), Nunito Sans type scale, shapes, spacing and
+ * the outcome colours of the diagnostics sheets ([StatusColors]).
  * Dynamic color is intentionally not used so the chosen brand palette is always respected.
  */
 @Composable
@@ -23,6 +24,7 @@ fun BookSearchTheme(
     CompositionLocalProvider(
         LocalSpacing provides Spacing(),
         LocalCoverSizes provides CoverSizes(),
+        LocalStatusColors provides if (darkTheme) DarkStatusColors else LightStatusColors,
     ) {
         MaterialTheme(
             colorScheme = colorSchemeFor(palette, darkTheme),

@@ -9,6 +9,7 @@ import com.booksearch.data.fakes.FakeCacheEntryDao
 import com.booksearch.data.fakes.FakeOpenLibraryApi
 import com.booksearch.data.fakes.FakePreferencesRepository
 import com.booksearch.data.fakes.FakeTimeProvider
+import com.booksearch.data.searchlog.SearchLog
 import com.booksearch.domain.model.CacheType
 import com.booksearch.domain.model.CachedSearch
 import com.booksearch.domain.model.UserPreferences
@@ -38,7 +39,7 @@ class CacheStatusRepositoryImplTest {
     private val statusRepository = CacheStatusRepositoryImpl(caches)
 
     private fun TestScope.bookRepository() =
-        BookRepositoryImpl(api, caches, StandardTestDispatcher(testScheduler))
+        BookRepositoryImpl(api, caches, SearchLog(time), StandardTestDispatcher(testScheduler))
 
     @Test
     fun `given searches with and without results, when listing, then only the ones with results are returned with their expiry`() = runTest {

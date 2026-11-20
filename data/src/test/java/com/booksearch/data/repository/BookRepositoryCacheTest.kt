@@ -8,8 +8,10 @@ import com.booksearch.data.fakes.FakeCacheEntryDao
 import com.booksearch.data.fakes.FakeOpenLibraryApi
 import com.booksearch.data.fakes.FakePreferencesRepository
 import com.booksearch.data.fakes.FakeTimeProvider
+import com.booksearch.data.searchlog.SearchLog
 import com.booksearch.domain.error.DomainError
 import com.booksearch.domain.error.DomainException
+import com.booksearch.domain.model.SearchOutcome
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
@@ -25,6 +27,7 @@ class BookRepositoryCacheTest {
     private val ttl = 3 * 60 * 1_000L
     private val api = FakeOpenLibraryApi()
     private val time = FakeTimeProvider()
+    private val searchLog = SearchLog(time)
 
     private fun TestScope.createRepository() = BookRepositoryImpl(
         api = api,
@@ -33,6 +36,7 @@ class BookRepositoryCacheTest {
             inMemory = InMemoryBookCaches(time, CacheConfig(ttlMillis = ttl)),
             onDisk = RoomBookCaches(FakeCacheEntryDao(), time, CacheConfig(ttlMillis = ttl)),
         ),
+        searchLog = searchLog,
         ioDispatcher = StandardTestDispatcher(testScheduler),
     )
 
@@ -135,5 +139,33 @@ class BookRepositoryCacheTest {
         assertTrue(tolkien.fromCache && asimov.fromCache)
         assertEquals("tolkien #1", tolkien.books.single().title)
         assertEquals("asimov #2", asimov.books.single().title)
+    }
+
+    @Test
+    fun `given searches from network, cache and a failure, when they finish, then each one is in the search log`() = runTest {
+        // Given
+        val repository = createRepository()
+        repository.searchBooks("tolkien")
+        repository.searchBooks("tolkien")
+        api.searchFailure = IOException("offline")
+
+        // When
+        try {
+            repository.searchBooks("dune")
+            fail("Expected DomainException")
+        } catch (e: DomainException) {
+            // expected
+        }
+
+        // Then: newest first
+        assertEquals(
+            listOf(
+                SearchOutcome.Failed(DomainError.NoConnection, durationMillis = 0),
+                SearchOutcome.Success(bookCount = 1, fromCache = true, durationMillis = 0),
+                SearchOutcome.Success(bookCount = 1, fromCache = false, durationMillis = 0),
+            ),
+            searchLog.entries.value.map { it.outcome },
+        )
+        assertEquals(listOf("dune", "tolkien", "tolkien"), searchLog.entries.value.map { it.query })
     }
 }

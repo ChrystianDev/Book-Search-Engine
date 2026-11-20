@@ -12,10 +12,12 @@ import com.booksearch.data.cache.room.CacheEntryDao
 import com.booksearch.data.preferences.PreferencesRepositoryImpl
 import com.booksearch.data.repository.BookRepositoryImpl
 import com.booksearch.data.repository.CacheStatusRepositoryImpl
+import com.booksearch.data.searchlog.SearchLog
 import com.booksearch.data.time.SystemTimeProvider
 import com.booksearch.domain.repository.BookRepository
 import com.booksearch.domain.repository.CacheStatusRepository
 import com.booksearch.domain.repository.PreferencesRepository
+import com.booksearch.domain.repository.SearchLogRepository
 import com.booksearch.domain.time.TimeProvider
 import dagger.Binds
 import dagger.Module
@@ -37,6 +39,9 @@ abstract class DataModule {
 
     @Binds
     abstract fun bindCacheStatusRepository(impl: CacheStatusRepositoryImpl): CacheStatusRepository
+
+    @Binds
+    abstract fun bindSearchLogRepository(impl: SearchLog): SearchLogRepository
 
     @Binds
     abstract fun bindPreferencesRepository(impl: PreferencesRepositoryImpl): PreferencesRepository

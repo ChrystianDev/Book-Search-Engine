@@ -7,6 +7,7 @@ import com.booksearch.data.error.safeApiCall
 import com.booksearch.data.mapper.authorIds
 import com.booksearch.data.mapper.toDomain
 import com.booksearch.data.remote.OpenLibraryApi
+import com.booksearch.data.searchlog.SearchLog
 import com.booksearch.domain.error.DomainException
 import com.booksearch.domain.error.catchDomainError
 import com.booksearch.domain.model.Book
@@ -28,16 +29,22 @@ import javax.inject.Singleton
  * a missing or expired one is fetched, stored and returned. Failed requests are never cached.
  *
  * The cache backend (memory or disk/Room) is chosen per operation by [BookCacheStore],
- * following the user preference set in Settings.
+ * following the user preference set in Settings. Every search, from cache or network, is
+ * recorded in [SearchLog] with its outcome and timing.
  */
 @Singleton
 class BookRepositoryImpl @Inject constructor(
     private val api: OpenLibraryApi,
     private val caches: BookCacheStore,
+    private val searchLog: SearchLog,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : BookRepository {
 
     override suspend fun searchBooks(query: String): SearchResult = withContext(ioDispatcher) {
+        searchLog.track(query) { searchCacheFirst(query) }
+    }
+
+    private suspend fun searchCacheFirst(query: String): SearchResult {
         val cacheKey = query.toCacheKey()
         val backend = caches.current()
         val cache = backend.search
@@ -46,7 +53,7 @@ class BookRepositoryImpl @Inject constructor(
         val cached = cache.get(cacheKey)
         if (cached != null) {
             Timber.tag(LOG_TAG).d("cache hit (%s): \"%s\" (%d books)", source, cacheKey, cached.size)
-            return@withContext SearchResult(query, cached, fromCache = true)
+            return SearchResult(query, cached, fromCache = true)
         }
 
         Timber.tag(LOG_TAG).d("cache miss (%s): \"%s\" -> network request", source, cacheKey)
@@ -54,7 +61,7 @@ class BookRepositoryImpl @Inject constructor(
             api.search(query).docs.mapNotNull { it.toDomain() }
         }
         cache.put(cacheKey, books)
-        SearchResult(query, books, fromCache = false)
+        return SearchResult(query, books, fromCache = false)
     }
 
     override suspend fun getTrendingBooks(): List<Book> =

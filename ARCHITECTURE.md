@@ -61,7 +61,7 @@ Las flechas siempre apuntan hacia `:domain`, el núcleo, que no depende de ning�
 | Módulo | Tipo | Contiene | Paquete base |
 |---|---|---|---|
 | `:domain` | Kotlin/JVM (`kotlin("jvm")`) | Modelos (`Book`, `BookDetail`, `SearchResult`…), interfaces de repositorio, casos de uso, `DomainError` y `TimeProvider` | `com.booksearch.domain` |
-| `:data` | Android library | `OpenLibraryApi` (Retrofit), DTOs, serializers, mappers DTO → dominio, cache en memoria (`InMemoryCache`) y en disco con Room (`BookSearchDatabase`, `CacheEntryDao`, `RoomCache`, modelos `CachedBook`/`CachedBookDetail` y sus mappers), `BookCacheStore` (elige el backend de cache según la preferencia), implementaciones de repositorio, DataStore, interceptores OkHttp y módulos Hilt | `com.booksearch.data` |
+| `:data` | Android library | `OpenLibraryApi` (Retrofit), DTOs, serializers, mappers DTO → dominio, cache en memoria (`InMemoryCache`) y en disco con Room (`BookSearchDatabase`, `CacheEntryDao`, `RoomCache`, modelos `CachedBook`/`CachedBookDetail` y sus mappers), `BookCacheStore` (elige el backend de cache según la preferencia), `SearchLog` (registro en memoria de las búsquedas de la sesión), implementaciones de repositorio, DataStore, interceptores OkHttp y módulos Hilt | `com.booksearch.data` |
 | `:app` | Android application | Pantallas Compose, ViewModels y estados de UI, navegación type-safe, design system (`ui/theme`) y `Application`/`MainActivity` | `com.booksearch.app` |
 
 ## Reglas de arquitectura
@@ -85,7 +85,7 @@ Las primeras reglas no dependen de la disciplina: **las impone el compilador** a
 10. **Casos de uso para la lógica, no para el CRUD trivial.** Búsqueda, detalle y home pasan por casos de uso; leer o guardar una preferencia usa directamente la interfaz `PreferencesRepository` del dominio.
 11. **Las implementaciones se exponen por interfaz.** `:app` depende de `:data` para que Hilt pueda construir el grafo, pero los ViewModels solo reciben interfaces y casos de uso de `:domain`.
 12. **Los textos van en `strings.xml`**, nunca escritos directamente en el código Compose.
-13. **Las herramientas de debug viven en `src/debug`.** El modo de latencia demo y el logging HTTP no se compilan en `release`.
+13. **Las herramientas de debug viven en `src/debug`.** El modo de latencia demo, el logging HTTP y el fallo simulado con `getfail001` no se compilan en `release`.
 
 ## Por qué módulos y no solo paquetes
 

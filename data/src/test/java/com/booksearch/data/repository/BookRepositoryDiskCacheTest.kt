@@ -9,6 +9,7 @@ import com.booksearch.data.fakes.FakeCacheEntryDao
 import com.booksearch.data.fakes.FakeOpenLibraryApi
 import com.booksearch.data.fakes.FakePreferencesRepository
 import com.booksearch.data.fakes.FakeTimeProvider
+import com.booksearch.data.searchlog.SearchLog
 import com.booksearch.domain.model.CacheType
 import com.booksearch.domain.model.UserPreferences
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -37,6 +38,7 @@ class BookRepositoryDiskCacheTest {
             inMemory = InMemoryBookCaches(time, CacheConfig(ttlMillis = ttl)),
             onDisk = RoomBookCaches(dao, time, CacheConfig(ttlMillis = ttl)),
         ),
+        searchLog = SearchLog(time),
         ioDispatcher = StandardTestDispatcher(testScheduler),
     )
 

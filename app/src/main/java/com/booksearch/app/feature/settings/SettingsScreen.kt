@@ -65,6 +65,7 @@ fun SettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showCacheStatus by rememberSaveable { mutableStateOf(false) }
+    var showSearchLog by rememberSaveable { mutableStateOf(false) }
     SettingsContent(
         uiState = uiState,
         onBack = onBack,
@@ -73,9 +74,13 @@ fun SettingsScreen(
         onCacheTypeSelected = viewModel::onCacheTypeSelected,
         onDemoLatencyChanged = viewModel::onDemoLatencyChanged,
         onCacheStatusClick = { showCacheStatus = true },
+        onSearchLogClick = { showSearchLog = true },
     )
     if (showCacheStatus) {
         CacheStatusSheet(onDismiss = { showCacheStatus = false })
+    }
+    if (showSearchLog) {
+        SearchLogSheet(onDismiss = { showSearchLog = false })
     }
 }
 
@@ -89,6 +94,7 @@ private fun SettingsContent(
     onCacheTypeSelected: (CacheType) -> Unit,
     onDemoLatencyChanged: (Boolean) -> Unit,
     onCacheStatusClick: () -> Unit,
+    onSearchLogClick: () -> Unit,
 ) {
     Scaffold(
         topBar = {
@@ -144,6 +150,17 @@ private fun SettingsContent(
                     )
                 }
             }
+
+            SectionHeader(R.string.settings_search_log) {
+                TextButton(onClick = onSearchLogClick) {
+                    Text(stringResource(R.string.cache_status_action))
+                }
+            }
+            Text(
+                text = stringResource(R.string.settings_search_log_description),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
 
             if (uiState.showDemoLatency) {
                 SectionHeader(R.string.settings_developer)
