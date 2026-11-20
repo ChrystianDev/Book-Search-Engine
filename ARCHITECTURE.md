@@ -61,7 +61,7 @@ Las flechas siempre apuntan hacia `:domain`, el núcleo, que no depende de ning�
 | Módulo | Tipo | Contiene | Paquete base |
 |---|---|---|---|
 | `:domain` | Kotlin/JVM (`kotlin("jvm")`) | Modelos (`Book`, `BookDetail`, `SearchResult`…), interfaces de repositorio, casos de uso, `DomainError` y `TimeProvider` | `com.booksearch.domain` |
-| `:data` | Android library | `OpenLibraryApi` (Retrofit), DTOs, serializers, mappers DTO → dominio, `InMemoryCache`, implementaciones de repositorio, DataStore, interceptores OkHttp y módulos Hilt | `com.booksearch.data` |
+| `:data` | Android library | `OpenLibraryApi` (Retrofit), DTOs, serializers, mappers DTO → dominio, cache en memoria (`InMemoryCache`) y en disco con Room (`BookSearchDatabase`, `CacheEntryDao`, `RoomCache`, modelos `CachedBook`/`CachedBookDetail` y sus mappers), `BookCacheStore` (elige el backend de cache según la preferencia), implementaciones de repositorio, DataStore, interceptores OkHttp y módulos Hilt | `com.booksearch.data` |
 | `:app` | Android application | Pantallas Compose, ViewModels y estados de UI, navegación type-safe, design system (`ui/theme`) y `Application`/`MainActivity` | `com.booksearch.app` |
 
 ## Reglas de arquitectura
@@ -71,12 +71,12 @@ Las primeras reglas no dependen de la disciplina: **las impone el compilador** a
 ### Impuestas por Gradle
 
 1. **`:domain` no tiene dependencias de Android.** Su `build.gradle.kts` aplica `kotlin("jvm")` y no el plugin de Android. Un `import android.*` en `:domain` no compila.
-2. **`:domain` no depende de ningún otro módulo.** No puede ver Retrofit, OkHttp, DataStore ni los DTOs.
+2. **`:domain` no depende de ningún otro módulo.** No puede ver Retrofit, OkHttp, DataStore, Room ni los DTOs.
 3. **`:data` no depende de `:app`.** La capa de datos no conoce la UI.
 
 ### Convenciones del proyecto
 
-4. **Los DTOs nunca salen de `:data`.** Los repositorios devuelven modelos de dominio; los mappers viven en `data/mapper`.
+4. **Los DTOs y los modelos de cache nunca salen de `:data`.** Los repositorios devuelven modelos de dominio; los mappers viven en `data/mapper`. Los modelos de dominio no llevan `@Serializable` ni anotaciones de Room: lo que se guarda en disco usa sus propios modelos (`CachedBook`, `CachedBookDetail`), así que cambiar el dominio no rompe la cache guardada. Detalle en el [README](README.md#2b-cache-en-disco-room-seleccionable-en-ajustes).
 5. **La UI nunca ve nulls de la API.** Los campos opcionales se mapean en `:data` a valores por defecto (listas vacías) o a tipos opcionales explícitos del dominio (`firstPublishYear: Int?`).
 6. **Los fallos cruzan capas como `DomainException`.** `:data` traduce los errores técnicos (`IOException`, `HttpException`…) a `DomainError` con `safeApiCall`. La UI solo conoce `DomainError`.
 7. **`CancellationException` nunca se trata como error.** Nada de `runCatching` ni de `catch (e: Exception)` genéricos sin relanzarla. Para tolerar fallos parciales se usa `catchDomainError`, que solo captura `DomainException`.
@@ -98,7 +98,7 @@ Las primeras reglas no dependen de la disciplina: **las impone el compilador** a
 
 ```bash
 ./gradlew :domain:test              # tests del dominio (JVM pura)
-./gradlew :data:testDebugUnitTest   # tests de la capa de datos
+./gradlew :data:testDebugUnitTest   # tests de la capa de datos (los de Room, con Robolectric)
 ./gradlew :app:testDebugUnitTest    # tests de presentación
 ./gradlew :app:installDebug         # instala la app
 ```

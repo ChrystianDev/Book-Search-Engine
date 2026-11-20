@@ -60,14 +60,14 @@ MVVM con separación estricta en tres módulos Gradle:
 graph LR
     app[":app<br/>Compose · ViewModels · navegación · design system"] --> domain
     app --> data
-    data[":data<br/>Retrofit · DTOs · mappers · cache · DataStore · Hilt"] --> domain
+    data[":data<br/>Retrofit · DTOs · mappers · cache (memoria y Room) · DataStore · Hilt"] --> domain
     domain[":domain<br/>Kotlin puro (JVM)<br/>modelos · repositorios · casos de uso · errores · TimeProvider"]
 ```
 
 | Módulo | Contenido | Reglas |
 |---|---|---|
 | `:domain` | `Book`, `BookDetail`, `SearchResult(fromCache)`, `HomeContent`, `UserPreferences`; interfaces `BookRepository` y `PreferencesRepository`; `SearchBooksUseCase`, `GetBookDetailUseCase`, `GetHomeContentUseCase`; `DomainError` y `TimeProvider`. | Módulo `kotlin("jvm")`: **ninguna dependencia de Android**. |
-| `:data` | `OpenLibraryApi`, DTOs, `TextValueSerializer`, mappers, `InMemoryCache`, `BookRepositoryImpl`, `PreferencesRepositoryImpl` (DataStore), interceptores y módulos Hilt. | Los DTOs **nunca salen** de este módulo. Los nulls de la API se convierten aquí en valores por defecto o en tipos opcionales explícitos. |
+| `:data` | `OpenLibraryApi`, DTOs, `TextValueSerializer`, mappers, `InMemoryCache`, cache en disco con Room (`RoomCache`, `BookCacheStore`), `BookRepositoryImpl`, `PreferencesRepositoryImpl` (DataStore), interceptores y módulos Hilt. | Los DTOs **nunca salen** de este módulo. Los nulls de la API se convierten aquí en valores por defecto o en tipos opcionales explícitos. |
 | `:app` | Pantallas Compose, ViewModels, navegación type-safe y design system (`ui/theme`). | Cada pantalla expone **un único `StateFlow<UiState>`** inmutable y recibe las intenciones del usuario mediante funciones. |
 
 Otras decisiones:
