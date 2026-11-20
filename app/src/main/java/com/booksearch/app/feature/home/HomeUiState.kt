@@ -24,6 +24,9 @@ sealed interface SearchState {
     data class Empty(val query: String) : SearchState
     data class Error(val query: String, val error: DomainError) : SearchState
     data class Cancelled(val query: String) : SearchState
+
+    /** Fewer characters than the API accepts: nothing is searched, a hint is shown instead. */
+    data class TooShort(val query: String) : SearchState
 }
 
 /** Discovery content shown while there is no active search. */

@@ -57,6 +57,28 @@ class SearchBooksUseCaseTest {
     }
 
     @Test
+    fun `given a query shorter than the minimum, when invoked, then returns an empty result without calling the repository`() = runTest {
+        // When
+        val result = useCase(" py ")
+
+        // Then
+        assertTrue(result.books.isEmpty())
+        coVerify(exactly = 0) { repository.searchBooks(any()) }
+    }
+
+    @Test
+    fun `given a query of exactly the minimum length, when invoked, then delegates to the repository`() = runTest {
+        // Given
+        coEvery { repository.searchBooks("pyt") } returns SearchResult("pyt", emptyList(), false)
+
+        // When
+        useCase("pyt")
+
+        // Then
+        coVerify(exactly = 1) { repository.searchBooks("pyt") }
+    }
+
+    @Test
     fun `given the repository fails, when invoked, then the domain error is propagated`() = runTest {
         // Given
         coEvery { repository.searchBooks(any()) } throws DomainException(DomainError.NoConnection)

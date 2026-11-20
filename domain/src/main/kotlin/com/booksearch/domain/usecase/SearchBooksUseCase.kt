@@ -9,13 +9,22 @@ class SearchBooksUseCase @Inject constructor(
 ) {
     /**
      * Searches books for [query] after trimming it.
-     * A blank query never reaches the repository and yields an empty result.
+     * A query shorter than [MIN_QUERY_LENGTH] (blank included) never reaches the repository
+     * and yields an empty result.
      */
     suspend operator fun invoke(query: String): SearchResult {
         val normalizedQuery = query.trim()
-        if (normalizedQuery.isEmpty()) {
+        if (normalizedQuery.length < MIN_QUERY_LENGTH) {
             return SearchResult(query = normalizedQuery, books = emptyList(), fromCache = false)
         }
         return repository.searchBooks(normalizedQuery)
+    }
+
+    companion object {
+        /**
+         * Open Library rejects shorter searches with HTTP 422 ("Query too short, must be at
+         * least 3 characters"), so they are not sent at all.
+         */
+        const val MIN_QUERY_LENGTH = 3
     }
 }

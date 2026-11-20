@@ -42,6 +42,7 @@ import com.booksearch.app.ui.component.MessageWithAction
 import com.booksearch.app.ui.theme.coverSizes
 import com.booksearch.app.ui.theme.spacing
 import com.booksearch.domain.model.Book
+import com.booksearch.domain.usecase.SearchBooksUseCase.Companion.MIN_QUERY_LENGTH
 
 /** Results section. Loading only takes this area: the search field above stays usable. */
 @Composable
@@ -66,6 +67,11 @@ fun SearchResultsContent(
             message = stringResource(state.error.messageRes()),
             actionLabel = stringResource(R.string.action_retry),
             onAction = onRetry,
+            modifier = modifier,
+        )
+        is SearchState.TooShort -> MessageWithAction(
+            title = stringResource(R.string.search_too_short_title, MIN_QUERY_LENGTH),
+            message = stringResource(R.string.search_too_short_message),
             modifier = modifier,
         )
         is SearchState.Cancelled -> MessageWithAction(

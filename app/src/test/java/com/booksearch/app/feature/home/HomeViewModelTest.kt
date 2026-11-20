@@ -215,6 +215,49 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `given a query shorter than three characters, when typed, then nothing is searched and a hint is shown`() = runTest {
+        // Given
+        val viewModel = createViewModel()
+
+        // When
+        viewModel.onQueryChange("py ")
+        advanceUntilIdle()
+
+        // Then
+        assertEquals(SearchState.TooShort("py"), viewModel.uiState.value.search)
+        assertTrue(repository.requestedSearches.isEmpty())
+    }
+
+    @Test
+    fun `given a search in flight, when the query is shortened below three characters, then the search is cancelled`() = runTest {
+        // Given
+        val viewModel = createViewModel()
+        viewModel.onQueryChange("python")
+        advanceTimeBy(DEBOUNCE + LATENCY / 2) // "python" request is now in flight
+
+        // When
+        viewModel.onQueryChange("py")
+        advanceUntilIdle()
+
+        // Then
+        assertEquals(SearchState.TooShort("py"), viewModel.uiState.value.search)
+        assertEquals(listOf("python"), repository.cancelledSearches)
+    }
+
+    @Test
+    fun `given a query of exactly three characters, when typed, then it is searched`() = runTest {
+        // Given
+        val viewModel = createViewModel()
+
+        // When
+        viewModel.onQueryChange("pyt")
+        advanceUntilIdle()
+
+        // Then
+        assertEquals(listOf("pyt"), repository.requestedSearches)
+    }
+
+    @Test
     fun `given the view model starts, when discovery loads, then trending and sections are shown`() = runTest {
         // When
         val viewModel = createViewModel()

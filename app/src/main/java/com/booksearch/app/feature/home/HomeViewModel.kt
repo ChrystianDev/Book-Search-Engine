@@ -6,6 +6,7 @@ import com.booksearch.app.LOG_TAG
 import com.booksearch.domain.error.DomainException
 import com.booksearch.domain.usecase.GetHomeContentUseCase
 import com.booksearch.domain.usecase.SearchBooksUseCase
+import com.booksearch.domain.usecase.SearchBooksUseCase.Companion.MIN_QUERY_LENGTH
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -52,6 +53,11 @@ class HomeViewModel @Inject constructor(
                 cancelSearch(reason = "query cleared")
                 setSearchState(SearchState.Idle)
             }
+            // The API rejects it (HTTP 422): cancel whatever was running and explain instead.
+            normalizedQuery.length < MIN_QUERY_LENGTH -> {
+                cancelSearch(reason = "query too short")
+                setSearchState(SearchState.TooShort(normalizedQuery))
+            }
             else -> startSearch(normalizedQuery, debounce = true)
         }
     }
@@ -73,7 +79,7 @@ class HomeViewModel @Inject constructor(
     /** "Reintentar" after an error, or "Buscar de nuevo" after a cancellation. No debounce. */
     fun onRetrySearch() {
         val query = _uiState.value.query.trim()
-        if (query.isNotEmpty()) startSearch(query, debounce = false)
+        if (query.length >= MIN_QUERY_LENGTH) startSearch(query, debounce = false)
     }
 
     fun onRetryDiscovery() = loadDiscovery()
@@ -157,4 +163,5 @@ private fun SearchState.queryOrNull(): String? = when (this) {
     is SearchState.Empty -> query
     is SearchState.Error -> query
     is SearchState.Cancelled -> query
+    is SearchState.TooShort -> query
 }
