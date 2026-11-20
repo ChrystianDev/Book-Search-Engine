@@ -54,7 +54,11 @@ abstract class DataModule {
         fun provideBookSearchDatabase(
             @ApplicationContext context: Context,
         ): BookSearchDatabase =
-            Room.databaseBuilder(context, BookSearchDatabase::class.java, BookSearchDatabase.NAME).build()
+            Room.databaseBuilder(context, BookSearchDatabase::class.java, BookSearchDatabase.NAME)
+                // The database is only a cache: on a schema change, dropping it is
+                // cheaper and safer than writing migrations for disposable data.
+                .fallbackToDestructiveMigration(dropAllTables = true)
+                .build()
 
         @Provides
         fun provideCacheEntryDao(database: BookSearchDatabase): CacheEntryDao = database.cacheEntryDao()
