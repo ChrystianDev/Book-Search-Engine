@@ -67,6 +67,12 @@
     <string name="cache_memory_description">Más rápido, pero se vacía al cerrar la aplicación por completo. Opción por defecto.</string>
     <string name="cache_disk">Disco (persistente)</string>
     <string name="cache_disk_description">Guarda los resultados en el almacenamiento local: se conservan aunque la aplicación se cierre y se vuelva a abrir.</string>
+    <string name="cache_status_action">Info estado</string>
+    <string name="cache_status_title">Estado de la caché</string>
+    <string name="cache_status_description">Búsquedas con resultados guardadas en la caché activa y el tiempo que les queda. Las caducadas (en gris) ya no se usan y se borran al volver a buscarlas.</string>
+    <string name="cache_status_empty">Todavía no hay búsquedas con resultados en la caché.</string>
+    <string name="cache_status_countdown">%1$d:%2$02d</string>
+    <string name="cache_status_expired">Caducada</string>
     <string name="settings_developer">Herramientas de demostración</string>
     <string name="settings_demo_latency">Modo demo: latencia simulada</string>
     <string name="settings_demo_latency_description">Añade 1,5 s a cada búsqueda para que se vea cómo se cancela la anterior al escribir. Solo disponible en builds de depuración.</string>
