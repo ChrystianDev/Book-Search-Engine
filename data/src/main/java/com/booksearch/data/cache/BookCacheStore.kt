@@ -23,9 +23,16 @@ class BookCacheStore @Inject constructor(
     private val inMemory: InMemoryBookCaches,
     private val onDisk: RoomBookCaches,
 ) {
+    // Logged only when the backend changes: the cache status panel reads it every second.
+    @Volatile
+    private var lastType: CacheType? = null
+
     suspend fun current(): BookCaches {
         val type = preferencesRepository.preferences.first().cacheType
-        Timber.tag(LOG_TAG).d("cache backend: %s", type.name.lowercase())
+        if (type != lastType) {
+            lastType = type
+            Timber.tag(LOG_TAG).d("cache backend: %s", type.name.lowercase())
+        }
         return if (type == CacheType.DISK) onDisk else inMemory
     }
 }

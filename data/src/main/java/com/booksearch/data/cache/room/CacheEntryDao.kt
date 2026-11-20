@@ -11,6 +11,9 @@ interface CacheEntryDao {
     @Query("SELECT * FROM cache_entries WHERE scope = :scope AND cache_key = :key")
     suspend fun get(scope: String, key: String): CacheEntryEntity?
 
+    @Query("SELECT * FROM cache_entries WHERE scope = :scope")
+    suspend fun getAll(scope: String): List<CacheEntryEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entry: CacheEntryEntity)
 

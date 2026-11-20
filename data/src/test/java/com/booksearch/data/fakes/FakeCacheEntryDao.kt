@@ -10,6 +10,9 @@ class FakeCacheEntryDao : CacheEntryDao {
 
     override suspend fun get(scope: String, key: String): CacheEntryEntity? = entries[scope to key]
 
+    override suspend fun getAll(scope: String): List<CacheEntryEntity> =
+        entries.values.filter { it.scope == scope }
+
     override suspend fun upsert(entry: CacheEntryEntity) {
         entries[entry.scope to entry.cacheKey] = entry
     }

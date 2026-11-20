@@ -49,6 +49,11 @@ class InMemoryCache<K : Any, V : Any>(
         }
     }
 
+    // Iterating an access-ordered LinkedHashMap does not reorder it: only get/put do.
+    override suspend fun snapshot(): List<CacheSnapshotEntry<K, V>> = mutex.withLock {
+        entries.map { (key, entry) -> CacheSnapshotEntry(key, entry.value, entry.storedAtMillis + ttlMillis) }
+    }
+
     suspend fun size(): Int = mutex.withLock { entries.size }
 
     private fun Entry<V>.isExpired(): Boolean =

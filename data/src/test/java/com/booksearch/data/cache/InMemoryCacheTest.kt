@@ -84,4 +84,23 @@ class InMemoryCacheTest {
         // Then
         assertEquals(1_000, bigCache.size())
     }
+
+    @Test
+    fun `given stored values, when taking a snapshot, then expired entries are listed and the lru order is unchanged`() = runTest {
+        // Given
+        cache.put("a", "A")
+        time.advanceBy(ttl)
+        cache.put("b", "B")
+        cache.put("c", "C")
+
+        // When
+        val snapshot = cache.snapshot()
+
+        // Then: "a" is expired but still listed (expiration is lazy)
+        assertEquals(listOf("a" to ttl, "b" to 2 * ttl, "c" to 2 * ttl), snapshot.map { it.key to it.expiresAtMillis })
+
+        // And the snapshot did not count as an access: "a" is still the eldest and gets evicted
+        cache.put("d", "D")
+        assertEquals(listOf("b", "c", "d"), cache.snapshot().map { it.key })
+    }
 }

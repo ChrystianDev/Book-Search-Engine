@@ -15,6 +15,9 @@ class FakeOpenLibraryApi : OpenLibraryApi {
     val searchCalls = mutableListOf<String>()
     var searchFailure: Throwable? = null
 
+    /** Queries that return no books. */
+    val emptyQueries = mutableSetOf<String>()
+
     val works = mutableMapOf<String, WorkDto>()
     val authors = mutableMapOf<String, AuthorDto>()
     var workCalls = 0
@@ -29,6 +32,7 @@ class FakeOpenLibraryApi : OpenLibraryApi {
         }
         searchCalls += query
         searchFailure?.let { throw it }
+        if (query in emptyQueries) return SearchResponseDto(emptyList())
         return SearchResponseDto(
             docs = listOf(BookDocDto(key = "/works/OL${searchCalls.size}W", title = "$query #${searchCalls.size}")),
         )
