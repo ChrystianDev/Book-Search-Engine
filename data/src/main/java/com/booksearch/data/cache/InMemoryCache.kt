@@ -55,7 +55,7 @@ class InMemoryCache<K : Any, V : Any>(
         timeProvider.currentTimeMillis() - storedAtMillis >= ttlMillis
 
     companion object {
-        const val DEFAULT_TTL_MILLIS: Long = 10 * 60 * 1_000L
+        const val DEFAULT_TTL_MILLIS: Long = 3 * 60 * 1_000L
         const val DEFAULT_MAX_ENTRIES: Int = 50
     }
 }
