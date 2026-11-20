@@ -47,8 +47,23 @@ Requisitos: Android SDK 36 y un JDK 17 o superior. Gradle viene con el wrapper.
 Para seguir el flujo de búsqueda y cache en Logcat:
 
 ```bash
-adb logcat -s BookSearch OkHttp
+adb logcat -s BookSearch okhttp.OkHttpClient
 ```
+
+- **`BookSearch`**: decisiones de la app (acierto o fallo de cache y en qué backend, búsquedas canceladas o descartadas, latencia demo).
+- **`okhttp.OkHttpClient`** (solo `debug`): todo el tráfico HTTP con la API. En Android Studio basta con filtrar Logcat por `tag:okhttp.OkHttpClient`. Por cada llamada se ve:
+
+  ```
+  --> GET https://openlibrary.org/search.json?q=tolkien&…      ← método y URL
+  User-Agent: BookSearch/1.0 (…)                              ← cabeceras de la petición
+  --> END GET
+  <-- 200 https://openlibrary.org/search.json?q=tolkien&… (612ms)  ← status y tiempo
+  content-type: application/json                              ← cabeceras de la respuesta
+  {"numFound":…,"docs":[…]}                                   ← cuerpo JSON completo
+  <-- END HTTP (612ms, 8431-byte body)
+  ```
+
+  Una llamada cancelada termina en `<-- HTTP FAILED: …`. Las respuestas largas se parten en varias líneas para no superar el límite de Logcat, y si hay peticiones en paralelo sus líneas se intercalan (el número de hilo de cada línea permite separarlas).
 
 ## Arquitectura
 
@@ -170,7 +185,8 @@ Es una herramienta para demostrar la cancelación aunque Open Library responda r
 - `DemoLatencyInterceptor` vive en `data/src/debug` y añade **1,5 s** antes de cada petición a la API. **Está desactivado por defecto** y se activa en *Ajustes → Herramientas de demostración*.
 - La espera se hace por tramos cortos y comprueba si OkHttp canceló la llamada. Así, una búsqueda cancelada **ni siquiera llega a la red** (`demo latency: call cancelled before reaching the network`).
 - En `release` el interceptor no se compila (multibinding vacío) y la opción no aparece en Ajustes.
-- Las portadas usan un cliente OkHttp aparte, con el mismo `User-Agent` pero sin herramientas de debug.
+- **Logging HTTP** (`HttpLogging.kt`, también en `data/src/debug`): un `HttpLoggingInterceptor` a nivel `BODY` que escribe en la etiqueta `okhttp.OkHttpClient`, la misma que usa OkHttp en Android, a través de Timber. Va después de la latencia demo, así que una petición se registra cuando sale de verdad. Como es un interceptor de aplicación, no muestra las cabeceras que OkHttp añade después (`Host`, `Accept-Encoding`…). En `release` no existe.
+- Las portadas usan un cliente OkHttp aparte, con el mismo `User-Agent` pero sin herramientas de debug, para no llenar Logcat con imágenes.
 
 ### 5. Diseño
 
@@ -269,7 +285,7 @@ Términos técnicos que aparecen en este README y en [ARCHITECTURE.md](ARCHITECT
 | **JVM** (Java Virtual Machine) | Máquina virtual donde se ejecuta Kotlin fuera de Android. | `:domain` es Kotlin puro de JVM; los tests unitarios corren en la JVM. |
 | **kotlinx.serialization** | Librería oficial de Kotlin para convertir objetos a JSON y al revés. | DTOs, cache en disco y rutas de navegación. |
 | **Lint** | Análisis estático que detecta errores y malas prácticas sin ejecutar el código. | Forma parte de `./gradlew build`. |
-| **Logcat** | Visor de logs de Android. | `adb logcat -s BookSearch OkHttp`. |
+| **Logcat** | Visor de logs de Android. | `adb logcat -s BookSearch okhttp.OkHttpClient`. |
 | **LRU** (Least Recently Used) | Política de desalojo: sale lo que lleva más tiempo sin usarse; leer una entrada la renueva. | La cache en memoria. |
 | **Mapper** | Función que convierte un modelo en otro (DTO → dominio, dominio → cache). | `data/mapper/`. |
 | **Material 3** | Sistema de diseño de Google y su librería de componentes para Compose. | Base de la UI y la tipografía. |
