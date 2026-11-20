@@ -33,7 +33,7 @@ class RoomBookCaches @Inject constructor(
         ttlMillis = config.ttlMillis,
         maxEntries = config.maxEntries,
         encode = { books -> json.encodeToString(books.map { it.toCached() }) },
-        decode = { runCatching { json.decodeFromString<List<CachedBook>>(it).map { it.toDomain() } }.getOrNull() },
+        decode = { decodeOrNull { json.decodeFromString<List<CachedBook>>(it).map { it.toDomain() } } },
     )
 
     override val home: KeyValueCache<String, List<Book>> = RoomCache(
@@ -43,7 +43,7 @@ class RoomBookCaches @Inject constructor(
         ttlMillis = config.ttlMillis,
         maxEntries = config.maxEntries,
         encode = { books -> json.encodeToString(books.map { it.toCached() }) },
-        decode = { runCatching { json.decodeFromString<List<CachedBook>>(it).map { it.toDomain() } }.getOrNull() },
+        decode = { decodeOrNull { json.decodeFromString<List<CachedBook>>(it).map { it.toDomain() } } },
     )
 
     override val detail: KeyValueCache<String, BookDetail> = RoomCache(
@@ -53,8 +53,22 @@ class RoomBookCaches @Inject constructor(
         ttlMillis = config.ttlMillis,
         maxEntries = config.maxEntries,
         encode = { json.encodeToString(it.toCached()) },
-        decode = { runCatching { json.decodeFromString<CachedBookDetail>(it).toDomain() }.getOrNull() },
+        decode = { decodeOrNull { json.decodeFromString<CachedBookDetail>(it).toDomain() } },
     )
+
+    /**
+     * Runs [block], turning a value that no longer matches the cache format into a miss.
+     *
+     * Only [IllegalArgumentException] is caught: it covers kotlinx's `SerializationException`
+     * (malformed JSON, missing or mistyped fields), which is its subclass. Anything else is a
+     * real bug and must propagate.
+     */
+    private inline fun <T> decodeOrNull(block: () -> T): T? =
+        try {
+            block()
+        } catch (e: IllegalArgumentException) {
+            null
+        }
 
     private companion object {
         const val SCOPE_SEARCH = "search"

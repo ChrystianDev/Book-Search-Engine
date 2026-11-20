@@ -70,4 +70,13 @@ class RoomBookCachesTest {
         // When / Then
         assertNull(caches.search.get("hobbit"))
     }
+
+    @Test
+    fun `given stored text that is not valid json, when read, then it is a cache miss`() = runTest {
+        // Given
+        storeRaw("detail", "OL1W", "not json {")
+
+        // When / Then
+        assertNull(caches.detail.get("OL1W"))
+    }
 }
