@@ -39,15 +39,17 @@ class BookRepositoryImpl @Inject constructor(
 
     override suspend fun searchBooks(query: String): SearchResult = withContext(ioDispatcher) {
         val cacheKey = query.toCacheKey()
-        val cache = caches.current().search
+        val backend = caches.current()
+        val cache = backend.search
+        val source = backend.type.name.lowercase()
 
         val cached = cache.get(cacheKey)
         if (cached != null) {
-            Timber.tag(LOG_TAG).d("cache hit: \"%s\" (%d books)", cacheKey, cached.size)
+            Timber.tag(LOG_TAG).d("cache hit (%s): \"%s\" (%d books)", source, cacheKey, cached.size)
             return@withContext SearchResult(query, cached, fromCache = true)
         }
 
-        Timber.tag(LOG_TAG).d("cache miss: \"%s\" -> network request", cacheKey)
+        Timber.tag(LOG_TAG).d("cache miss (%s): \"%s\" -> network request", source, cacheKey)
         val books = logged("search \"$query\"") {
             api.search(query).docs.mapNotNull { it.toDomain() }
         }

@@ -7,6 +7,7 @@ import com.booksearch.data.mapper.toCached
 import com.booksearch.data.mapper.toDomain
 import com.booksearch.domain.model.Book
 import com.booksearch.domain.model.BookDetail
+import com.booksearch.domain.model.CacheType
 import com.booksearch.domain.time.TimeProvider
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
@@ -23,6 +24,8 @@ class RoomBookCaches @Inject constructor(
     timeProvider: TimeProvider,
     config: CacheConfig,
 ) : BookCaches {
+
+    override val type = CacheType.DISK
 
     private val json = Json { ignoreUnknownKeys = true }
 
