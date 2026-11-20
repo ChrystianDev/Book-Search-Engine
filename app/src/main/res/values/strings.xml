@@ -59,6 +59,10 @@
     <string name="detail_subjects">Temas</string>
 
     <!-- Settings -->
+    <string name="exit_dialog_title">¿Quieres cerrar la aplicación?</string>
+    <string name="exit_dialog_message">Volverás a la pantalla de inicio del dispositivo.</string>
+    <string name="exit_dialog_confirm">Sí</string>
+    <string name="exit_dialog_dismiss">No</string>
     <string name="settings_title">Ajustes</string>
     <string name="settings_palette">Paleta de color</string>
     <string name="settings_theme">Tema</string>
