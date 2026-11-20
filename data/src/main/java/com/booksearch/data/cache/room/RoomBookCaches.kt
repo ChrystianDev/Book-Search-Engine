@@ -3,6 +3,8 @@ package com.booksearch.data.cache.room
 import com.booksearch.data.cache.BookCaches
 import com.booksearch.data.cache.CacheConfig
 import com.booksearch.data.cache.KeyValueCache
+import com.booksearch.data.mapper.toCached
+import com.booksearch.data.mapper.toDomain
 import com.booksearch.domain.model.Book
 import com.booksearch.domain.model.BookDetail
 import com.booksearch.domain.time.TimeProvider
@@ -12,7 +14,8 @@ import javax.inject.Inject
 /**
  * The disk backend: the same three caches, backed by Room.
  *
- * Values are stored as JSON. A value that fails to decode (e.g. written by an older
+ * Values are stored as JSON using the cache models ([CachedBook], [CachedBookDetail]), never the
+ * domain models directly. A value that fails to decode (e.g. written by an older
  * app version with a different model) is treated as absent instead of crashing.
  */
 class RoomBookCaches @Inject constructor(
@@ -29,8 +32,8 @@ class RoomBookCaches @Inject constructor(
         timeProvider = timeProvider,
         ttlMillis = config.ttlMillis,
         maxEntries = config.maxEntries,
-        encode = { json.encodeToString(it) },
-        decode = { runCatching { json.decodeFromString<List<Book>>(it) }.getOrNull() },
+        encode = { books -> json.encodeToString(books.map { it.toCached() }) },
+        decode = { runCatching { json.decodeFromString<List<CachedBook>>(it).map { it.toDomain() } }.getOrNull() },
     )
 
     override val home: KeyValueCache<String, List<Book>> = RoomCache(
@@ -39,8 +42,8 @@ class RoomBookCaches @Inject constructor(
         timeProvider = timeProvider,
         ttlMillis = config.ttlMillis,
         maxEntries = config.maxEntries,
-        encode = { json.encodeToString(it) },
-        decode = { runCatching { json.decodeFromString<List<Book>>(it) }.getOrNull() },
+        encode = { books -> json.encodeToString(books.map { it.toCached() }) },
+        decode = { runCatching { json.decodeFromString<List<CachedBook>>(it).map { it.toDomain() } }.getOrNull() },
     )
 
     override val detail: KeyValueCache<String, BookDetail> = RoomCache(
@@ -49,8 +52,8 @@ class RoomBookCaches @Inject constructor(
         timeProvider = timeProvider,
         ttlMillis = config.ttlMillis,
         maxEntries = config.maxEntries,
-        encode = { json.encodeToString(it) },
-        decode = { runCatching { json.decodeFromString<BookDetail>(it) }.getOrNull() },
+        encode = { json.encodeToString(it.toCached()) },
+        decode = { runCatching { json.decodeFromString<CachedBookDetail>(it).toDomain() }.getOrNull() },
     )
 
     private companion object {

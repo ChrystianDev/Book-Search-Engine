@@ -137,7 +137,7 @@ Cómo está montado:
 
 - `KeyValueCache<K, V>` (en `:data`) es la interfaz común; `InMemoryCache` y `RoomCache` la implementan, con la misma política: TTL por entrada y límite LRU de 50 entradas. La expiración se comprueba al leer, así que no hay limpieza en el arranque.
 - `BookCaches` agrupa las tres caches (búsqueda, home, detalle); `InMemoryBookCaches` y `RoomBookCaches` son los dos backends. `BookCacheStore` lee la preferencia (DataStore) en cada operación y entrega el backend activo: cambiar la opción en Ajustes afecta a la siguiente petición, sin reiniciar la app.
-- Los modelos `Book` y `BookDetail` son `@Serializable`: el backend de disco guarda JSON, y un valor que no se pueda decodificar se trata como ausente (no crashea).
+- El backend de disco guarda JSON con modelos propios de cache (`CachedBook`, `CachedBookDetail`, en `:data`) y sus mappers en `data/mapper/CacheMappers.kt`. Los modelos de dominio no son `@Serializable`: `:domain` no depende del formato de almacenamiento, y renombrar un campo del dominio no cambia lo guardado en disco. Un valor que no se pueda decodificar se trata como ausente (no crashea).
 - Los dos backends son independientes: las entradas no se migran al cambiar de opción.
 - La base de datos es `booksearch_cache.db`, una sola tabla `cache_entries` con clave compuesta `(scope, cache_key)`, donde `scope` separa búsqueda/home/detalle.
 
