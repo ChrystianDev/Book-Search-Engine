@@ -18,12 +18,6 @@ android {
         buildConfig = true
     }
 
-    // Lets JVM tests instantiate Android stub classes such as SQLiteException
-    // (used to simulate storage failures in the disk cache).
-    testOptions {
-        unitTests.isReturnDefaultValues = true
-    }
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -56,4 +50,6 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
 }

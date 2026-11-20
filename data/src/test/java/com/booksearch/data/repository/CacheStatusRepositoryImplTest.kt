@@ -17,7 +17,11 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
+// Robolectric only so SQLiteException (an Android class) can be built to simulate storage failures.
+@RunWith(RobolectricTestRunner::class)
 class CacheStatusRepositoryImplTest {
 
     private val ttl = 3 * 60 * 1_000L

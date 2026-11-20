@@ -18,7 +18,11 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
+// Robolectric only so SQLiteException (an Android class) can be built to simulate storage failures.
+@RunWith(RobolectricTestRunner::class)
 class BookRepositoryDiskCacheTest {
 
     private val ttl = 3 * 60 * 1_000L
