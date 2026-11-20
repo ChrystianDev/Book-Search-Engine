@@ -61,6 +61,24 @@ class RoomCacheIntegrationTest {
     }
 
     @Test
+    fun `given the oldest entry was just read, when the limit is exceeded, then it is still evicted (FIFO, not LRU)`() = runTest {
+        // Given
+        cache.put("a", "A")
+        time.advanceBy(1)
+        cache.put("b", "B")
+        time.advanceBy(1)
+        assertEquals("A", cache.get("a")) // a read does not renew the entry on disk
+
+        // When
+        cache.put("c", "C")
+
+        // Then
+        assertNull(cache.get("a"))
+        assertEquals("B", cache.get("b"))
+        assertEquals("C", cache.get("c"))
+    }
+
+    @Test
     fun `given an entry older than the ttl, when read, then it is a miss and is deleted`() = runTest {
         // Given
         cache.put("a", "A")
