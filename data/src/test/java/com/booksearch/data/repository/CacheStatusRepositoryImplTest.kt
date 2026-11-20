@@ -1,5 +1,6 @@
 package com.booksearch.data.repository
 
+import android.database.sqlite.SQLiteException
 import com.booksearch.data.cache.BookCacheStore
 import com.booksearch.data.cache.CacheConfig
 import com.booksearch.data.cache.InMemoryBookCaches
@@ -23,11 +24,12 @@ class CacheStatusRepositoryImplTest {
     private val api = FakeOpenLibraryApi()
     private val time = FakeTimeProvider()
     private val preferences = FakePreferencesRepository(UserPreferences())
+    private val dao = FakeCacheEntryDao()
 
     private val caches = BookCacheStore(
         preferencesRepository = preferences,
         inMemory = InMemoryBookCaches(time, CacheConfig(ttlMillis = ttl)),
-        onDisk = RoomBookCaches(FakeCacheEntryDao(), time, CacheConfig(ttlMillis = ttl)),
+        onDisk = RoomBookCaches(dao, time, CacheConfig(ttlMillis = ttl)),
     )
     private val statusRepository = CacheStatusRepositoryImpl(caches)
 
@@ -75,5 +77,15 @@ class CacheStatusRepositoryImplTest {
 
         // Then
         assertEquals(listOf("dune"), cached.map { it.query })
+    }
+
+    @Test
+    fun `given the disk storage fails, when listing, then an empty list is returned`() = runTest {
+        // Given
+        preferences.setCacheType(CacheType.DISK)
+        dao.failure = SQLiteException("database disk image is malformed")
+
+        // When / Then
+        assertEquals(emptyList<CachedSearch>(), statusRepository.cachedSearches())
     }
 }

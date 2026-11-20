@@ -1,5 +1,6 @@
 package com.booksearch.data.repository
 
+import android.database.sqlite.SQLiteException
 import com.booksearch.data.cache.BookCacheStore
 import com.booksearch.data.cache.CacheConfig
 import com.booksearch.data.cache.InMemoryBookCaches
@@ -14,6 +15,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -61,6 +63,40 @@ class BookRepositoryDiskCacheTest {
         repository.searchBooks("tolkien")
 
         // Then
+        assertEquals(2, api.searchCalls.size)
+    }
+
+    @Test
+    fun `given the disk storage fails, when searching, then the result comes from the network and nothing crashes`() = runTest {
+        // Given
+        dao.failure = SQLiteException("disk I/O error")
+        val repository = createRepository(UserPreferences(cacheType = CacheType.DISK))
+
+        // When: both the read (miss) and the write (skipped) fail
+        val first = repository.searchBooks("tolkien")
+        val second = repository.searchBooks("tolkien")
+
+        // Then: every search falls back to the network
+        assertFalse(first.fromCache)
+        assertFalse(second.fromCache)
+        assertEquals(2, api.searchCalls.size)
+        assertEquals(1, first.books.size)
+    }
+
+    @Test
+    fun `given the disk storage recovers, when searching again, then the cache works again`() = runTest {
+        // Given
+        dao.failure = SQLiteException("database is locked")
+        val repository = createRepository(UserPreferences(cacheType = CacheType.DISK))
+        repository.searchBooks("tolkien")
+
+        // When
+        dao.failure = null
+        repository.searchBooks("tolkien")
+        val third = repository.searchBooks("tolkien")
+
+        // Then
+        assertTrue(third.fromCache)
         assertEquals(2, api.searchCalls.size)
     }
 }
