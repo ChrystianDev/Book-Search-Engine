@@ -191,7 +191,7 @@ Es una herramienta para demostrar la cancelación aunque Open Library responda r
 | Módulo | Qué cubre |
 |---|---|
 | `:domain` (MockK) | `SearchBooksUseCase`: delega, normaliza, ignora queries vacías y propaga errores. `GetBookDetailUseCase`: delega y propaga. `GetHomeContentUseCase`: carga en paralelo y tolera fallos parciales. |
-| `:data` (`FakeTimeProvider`, `FakeOpenLibraryApi` que cuenta llamadas y Robolectric para Room) | **Cache**: primera búsqueda va a red; misma query dentro del TTL sin red y con `fromCache = true`; "Tolkien " y "tolkien" comparten entrada; tras el TTL vuelve a red y actualiza; un error de red no se cachea; queries distintas tienen entradas independientes; desalojo LRU en memoria; escrituras concurrentes desde varios hilos. **Cache en disco (Room)**: seleccionada la opción "Disco", segunda búsqueda sin red y con `fromCache = true`; tras el TTL vuelve a red; un fallo de SQLite se trata como "no está en la cache" y la app no crashea; un JSON que ya no encaja o no es válido también. **Room real** (`CacheEntryDaoTest`, `RoomCacheIntegrationTest`, sobre SQLite en memoria con Robolectric): la clave compuesta (mismo `cache_key` en dos `scope`), `upsert` reemplaza, `getAll`/`count` por `scope`, `deleteOldest` borra por `stored_at_millis` y solo en su `scope`, y en `RoomCache` el límite de entradas y el TTL. **Serialización y mappers**: `description` como string y como objeto, campos ausentes con valores por defecto. **Errores**: mapeo a `DomainError` y `CancellationException` siempre relanzada. **Detalle**: autores en paralelo con fallo parcial y año desde el índice de búsqueda. |
+| `:data` (`FakeTimeProvider`, `FakeOpenLibraryApi` que cuenta llamadas y Robolectric para Room) | **Cache**: primera búsqueda va a red; misma query dentro del TTL sin red y con `fromCache = true`; "Tolkien " y "tolkien" comparten entrada; tras el TTL vuelve a red y actualiza; un error de red no se cachea; queries distintas tienen entradas independientes; desalojo LRU en memoria; escrituras concurrentes desde varios hilos. **Cache en disco (Room)**: seleccionada la opción "Disco", segunda búsqueda sin red y con `fromCache = true`; tras el TTL vuelve a red; un fallo de SQLite se trata como "no está en la cache" y la app no crashea; un JSON que ya no encaja o no es válido también. **Room real** (`CacheEntryDaoTest`, `RoomCacheIntegrationTest`, sobre SQLite en memoria con Robolectric): la clave compuesta (mismo `cache_key` en dos `scope`), `upsert` reemplaza, `getAll`/`count` por `scope`, `deleteOldest` borra por `stored_at_millis` y solo en su `scope`, y en `RoomCache` el límite de entradas (FIFO: leer una entrada no la libra del desalojo) y el TTL. **Serialización y mappers**: `description` como string y como objeto, campos ausentes con valores por defecto. **Errores**: mapeo a `DomainError` y `CancellationException` siempre relanzada. **Detalle**: autores en paralelo con fallo parcial y año desde el índice de búsqueda. |
 | `:app` (`runTest`, `StandardTestDispatcher`, `MainDispatcherRule`, Turbine) | Una nueva búsqueda cancela la anterior y **solo** se emiten resultados de la última (latencia simulada con `delay` y `advanceTimeBy`). El debounce agrupa pulsaciones. Botón Cancelar → `Cancelled`. X → vuelta a la home. Lista vacía → `Empty`. Error → `Error`, y Reintentar relanza. Resultado cacheado → `Success(fromCache = true)`. También el detalle y los ajustes. |
 
 Robolectric simula el framework de Android en la JVM, así que estos tests corren con `./gradlew test`, sin emulador. Se usa solo donde hace falta Android de verdad: el SQL que genera Room y las dos clases de tests que crean `SQLiteException` para simular fallos de disco. El resto de tests de `:data` son JUnit puro.
@@ -221,3 +221,81 @@ La arquitectura está preparada, pero esto no está implementado:
 - **Accesibilidad completa**: TalkBack revisado, tamaños de fuente dinámicos y contraste.
 - **Responsividad completa**: tablets, plegables y landscape con layouts adaptativos.
 - **Favoritos con Firestore**: encajaría como un nuevo repositorio en `:domain`/`:data`.
+
+## Glosario
+
+Términos técnicos que aparecen en este README y en [ARCHITECTURE.md](ARCHITECTURE.md), en orden alfabético.
+
+| Término | Qué significa | En este proyecto |
+|---|---|---|
+| **AGP** (Android Gradle Plugin) | Plugin de Gradle que sabe compilar y empaquetar apps y librerías Android. | Versión 9.5.1, con Kotlin integrado. |
+| **API** (Application Programming Interface) | Conjunto de operaciones que un sistema expone para que otro lo use. | La API REST de Open Library. |
+| **API key** | Clave secreta que algunas APIs exigen para identificar a quien llama. | Open Library no la pide, así que no hay nada que configurar. |
+| **Assisted injection** | Variante de la inyección de dependencias en la que parte de los parámetros los da quien crea el objeto y el resto los aporta el contenedor. | `DetailViewModel` recibe el `workId` así, sin `SavedStateHandle`. |
+| **Backend (de cache)** | Implementación concreta que guarda los datos detrás de una interfaz común. | Memoria (`InMemoryBookCaches`) o disco (`RoomBookCaches`). |
+| **Bottom sheet** | Panel que sube desde la parte inferior de la pantalla. | La hoja *Info estado* de Ajustes. |
+| **Build type** (`debug` / `release`) | Variantes de compilación de la misma app: `debug` para desarrollo, `release` para publicar. | Las herramientas de demo y el logging HTTP solo existen en `debug`. |
+| **Cache** | Copia temporal de datos ya obtenidos para no volver a pedirlos. | Búsquedas, home y detalle, en memoria o en disco. |
+| **Caso de uso** (use case) | Clase de `:domain` que encapsula una operación de negocio. | `SearchBooksUseCase`, `GetBookDetailUseCase`, `GetHomeContentUseCase`. |
+| **`CancellationException`** | Excepción con la que Kotlin señala que una coroutine fue cancelada. No es un error y no debe capturarse como tal. | Siempre se relanza (regla 7 de ARCHITECTURE). |
+| **Clave compuesta** | Clave primaria formada por varias columnas a la vez. | `(scope, cache_key)` en la tabla `cache_entries`. |
+| **Coil** | Librería de carga de imágenes para Compose. | Carga las portadas. |
+| **Coroutine** | Unidad de trabajo asíncrono de Kotlin: puede suspenderse sin bloquear un hilo y cancelarse. | Toda la red, la cache y los ViewModels. |
+| **DAO** (Data Access Object) | Interfaz con las consultas a la base de datos; Room genera su implementación. | `CacheEntryDao`. |
+| **DataStore** | Almacén de preferencias clave-valor de AndroidX, asíncrono (sustituye a `SharedPreferences`). | Tema, backend de cache, onboarding, modo demo. |
+| **Debounce** | Esperar a que el usuario deje de teclear un momento antes de actuar. | 300 ms antes de lanzar la búsqueda. |
+| **Decorador** | Patrón que envuelve un objeto con otro de la misma interfaz para añadir comportamiento. | Se descartó un `CachedBookRepository` decorador (ver *2. Cache*). |
+| **Design system** | Conjunto de colores, tipografía, formas y medidas que comparte toda la UI. | `ui/theme`, con tres paletas. |
+| **DI** (Dependency Injection) | Que un objeto reciba sus dependencias desde fuera en lugar de crearlas. | Con Hilt. |
+| **Dispatcher** | Decide en qué hilo o grupo de hilos se ejecuta una coroutine. | `@IoDispatcher` inyectado; en tests, `StandardTestDispatcher`. |
+| **dp** (density-independent pixel) | Unidad de medida de Android que se ve del mismo tamaño en pantallas de distinta densidad. | Áreas táctiles de al menos 48 dp. |
+| **DTO** (Data Transfer Object) | Clase que refleja exactamente el JSON de la API, sin lógica. | Viven en `:data` y nunca salen de ese módulo. |
+| **Endpoint** | Cada URL concreta de una API. | `/search.json`, `/works/{id}.json`… |
+| **Entidad** (`@Entity`) | Clase que Room convierte en una tabla. | `CacheEntryEntity` → tabla `cache_entries`. |
+| **Esquema / migración** | El esquema es la estructura de las tablas; una migración transforma un esquema antiguo en el nuevo sin perder datos. | No hay migraciones: ante un cambio de esquema la base de datos se recrea. |
+| **Expiración perezosa** (lazy) | Una entrada caducada no se borra cuando caduca, sino la próxima vez que alguien la lee. | Las dos caches. |
+| **Fake** | Implementación simplificada y real de una interfaz, usada en tests en lugar de un mock. | `FakeTimeProvider`, `FakeOpenLibraryApi`, `FakeCacheEntryDao`. |
+| **FIFO** (First In, First Out) | Política de desalojo: sale primero lo que entró primero, aunque se haya usado hace poco. | La cache en disco. |
+| **`flatMapLatest`** | Operador de `Flow` que cancela el trabajo anterior cuando llega un valor nuevo. | Se descartó a favor de un `Job` explícito. |
+| **Flow / `StateFlow`** | Flujo asíncrono de valores de Kotlin. `StateFlow` siempre tiene un valor actual y emite sus cambios. | Cada pantalla expone un `StateFlow<UiState>`. |
+| **Given / when / then** | Forma de escribir un test: estado inicial, acción y resultado esperado. | Formato de todos los nombres de test. |
+| **Gradle** | Herramienta de build del proyecto; el *wrapper* (`./gradlew`) descarga la versión correcta. | Proyecto multimódulo con catálogo de versiones. |
+| **Hilt** | Librería de inyección de dependencias para Android, basada en Dagger. | Monta el grafo de toda la app. |
+| **Hito** | Entrega parcial de la prueba técnica. | Hito 1 implementado; Hito 2 fuera de alcance. |
+| **Interceptor** | Pieza de OkHttp que ve y puede modificar cada petición y respuesta. | `User-Agent`, logging y `DemoLatencyInterceptor`. |
+| **Job** | Referencia a una coroutine en marcha que permite cancelarla. | `searchJob` en el ViewModel de búsqueda. |
+| **JSON** | Formato de texto para datos estructurados. | Respuestas de la API y valores guardados en la cache en disco. |
+| **Jetpack Compose** | Toolkit declarativo de Android para construir la UI en Kotlin. | Todas las pantallas. |
+| **JVM** (Java Virtual Machine) | Máquina virtual donde se ejecuta Kotlin fuera de Android. | `:domain` es Kotlin puro de JVM; los tests unitarios corren en la JVM. |
+| **kotlinx.serialization** | Librería oficial de Kotlin para convertir objetos a JSON y al revés. | DTOs, cache en disco y rutas de navegación. |
+| **Lint** | Análisis estático que detecta errores y malas prácticas sin ejecutar el código. | Forma parte de `./gradlew build`. |
+| **Logcat** | Visor de logs de Android. | `adb logcat -s BookSearch OkHttp`. |
+| **LRU** (Least Recently Used) | Política de desalojo: sale lo que lleva más tiempo sin usarse; leer una entrada la renueva. | La cache en memoria. |
+| **Mapper** | Función que convierte un modelo en otro (DTO → dominio, dominio → cache). | `data/mapper/`. |
+| **Material 3** | Sistema de diseño de Google y su librería de componentes para Compose. | Base de la UI y la tipografía. |
+| **Mock / MockK** | Un mock es un objeto de test cuyo comportamiento se programa y se verifica; MockK es la librería de mocks para Kotlin. | Tests de `:domain`. |
+| **Módulo Gradle** | Subproyecto que se compila por separado y declara de qué otros depende. | `:app`, `:data`, `:domain`. |
+| **Multibinding** | Función de Hilt/Dagger para inyectar un conjunto de implementaciones aportadas por varios módulos. | Lista de interceptores; vacía en `release`. |
+| **MVVM** (Model-View-ViewModel) | Arquitectura que separa la UI (View), su estado y lógica de presentación (ViewModel) y los datos (Model). | Arquitectura de la app. |
+| **Mutex** | Cerrojo que deja pasar a una sola coroutine a la vez por una sección de código. | Protege `InMemoryCache` y `RoomCache`. |
+| **OkHttp** | Cliente HTTP sobre el que funciona Retrofit. | Peticiones, interceptores y cancelación real. |
+| **Placeholder** | Imagen o contenido provisional que se muestra cuando falta el real. | Libros sin portada. |
+| **Repositorio** | Clase que oculta de dónde vienen los datos (red, cache…) tras una interfaz de dominio. | `BookRepository` / `BookRepositoryImpl`. |
+| **REST** | Estilo de API web basado en URLs y métodos HTTP. | Open Library. |
+| **Retrofit** | Librería que convierte una interfaz Kotlin en llamadas HTTP. | `OpenLibraryApi`. |
+| **Robolectric** | Simula el framework de Android en la JVM para ejecutar tests sin emulador. | Tests de Room y de `SQLiteException`. |
+| **Room** | Librería de AndroidX sobre SQLite: genera el SQL y el código de acceso a partir de anotaciones. | Cache en disco (`BookSearchDatabase`). |
+| **Scope (de cache)** | Columna que separa en la misma tabla los distintos tipos de cache. | `search`, `home`, `detail`. |
+| **SDK** (`compileSdk`, `minSdk`, `targetSdk`) | Versión de Android con la que se compila, la mínima en la que se instala y aquella para la que se ha probado. | 36 / 26 / 36. |
+| **SQLite** | Base de datos SQL embebida en un único fichero, incluida en Android. | Debajo de Room. |
+| **Splash** | Pantalla que se muestra mientras arranca la app. | `core-splashscreen`, hasta leer las preferencias. |
+| **Stub** | Implementación vacía que solo sirve para compilar. En los tests unitarios, el `android.jar` son stubs que lanzan excepción. | Motivo para usar Robolectric. |
+| **Thread-safety** | Que el código funcione bien aunque varios hilos lo usen a la vez. | Las caches, mediante `Mutex`. |
+| **Timber** | Librería de logging para Android. | Logs con la etiqueta `BookSearch`. |
+| **TTL** (Time To Live) | Tiempo que una entrada sigue siendo válida antes de caducar. | 3 minutos en las dos caches. |
+| **Turbine** | Librería para testear `Flow` cómodamente. | Tests de ViewModels. |
+| **Type-safe navigation** | Navegación con rutas definidas como clases Kotlin en lugar de strings, comprobadas al compilar. | `DetailRoute(workId)`. |
+| **UiState** | Clase inmutable que describe todo lo que muestra una pantalla en un momento dado. | `Loading`, `Success`, `Error`, `Cancelled`, `Empty`… |
+| **Upsert** | Insertar o, si ya existe la clave, reemplazar. | `CacheEntryDao.upsert`. |
+| **User-Agent** | Cabecera HTTP que identifica a la app que hace la petición. | Open Library la pide. |
+| **ViewModel** | Clase de AndroidX que guarda el estado de una pantalla y sobrevive a giros de pantalla. | Uno por pantalla; `viewModelScope` cancela su trabajo al salir. |
