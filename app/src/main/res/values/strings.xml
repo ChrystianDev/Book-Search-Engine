@@ -44,7 +44,11 @@
     <string name="search_cancelled_title">Búsqueda cancelada</string>
     <string name="search_cancelled_message">Has cancelado la búsqueda de «%1$s».</string>
     <string name="search_again">Buscar de nuevo</string>
-    <string name="search_too_short_title">Escribe al menos %1$d caracteres para buscar</string>
+    <plurals name="search_too_short_title">
+        <item quantity="one">Escribe al menos %1$d carácter para buscar</item>
+        <item quantity="many">Escribe al menos %1$d caracteres para buscar</item>
+        <item quantity="other">Escribe al menos %1$d caracteres para buscar</item>
+    </plurals>
     <string name="search_too_short_message">Open Library no acepta búsquedas más cortas.</string>
     <plurals name="edition_count">
         <item quantity="one">%1$d edición</item>
@@ -73,15 +77,14 @@
     <string name="cache_memory_description">Más rápido, pero se vacía al cerrar la aplicación por completo. Opción por defecto.</string>
     <string name="cache_disk">Disco (persistente)</string>
     <string name="cache_disk_description">Guarda los resultados en el almacenamiento local: se conservan aunque la aplicación se cierre y se vuelva a abrir.</string>
-    <string name="cache_status_action">Info estado</string>
-    <string name="cache_status_title">Estado de la caché</string>
+    <string name="diagnostics_title">Diagnóstico</string>
+    <string name="diagnostics_tab_cache">Caché</string>
+    <string name="diagnostics_tab_searches">Búsquedas</string>
+    <string name="cache_status_backend">Backend activo: %1$s</string>
     <string name="cache_status_description">Búsquedas con resultados guardadas en la caché activa y el tiempo que les queda. Las caducadas (en gris) ya no se usan y se borran al volver a buscarlas.</string>
     <string name="cache_status_empty">Todavía no hay búsquedas con resultados en la caché.</string>
     <string name="cache_status_countdown">%1$d:%2$02d</string>
     <string name="cache_status_expired">Caducada</string>
-    <string name="settings_search_log">Peticiones / Búsquedas</string>
-    <string name="settings_search_log_description">Historial de las búsquedas de esta sesión: las que terminaron bien, las canceladas y las que fallaron.</string>
-    <string name="search_log_title">Peticiones / Búsquedas</string>
     <string name="search_log_description">Últimas búsquedas de esta sesión, la más reciente arriba. Toca una para ver el detalle. Se borran al cerrar la aplicación.</string>
     <string name="search_log_failure_hint">Para probar un fallo, busca un texto que contenga getfail001: responde con un HTTP 404 simulado (solo en builds de depuración).</string>
     <string name="search_log_empty">Todavía no se ha hecho ninguna búsqueda en esta sesión.</string>

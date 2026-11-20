@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,6 +35,7 @@ import com.booksearch.domain.model.Book
 fun HomeScreen(
     onBookClick: (workId: String) -> Unit,
     onSettingsClick: () -> Unit,
+    onDiagnosticsClick: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -59,6 +61,7 @@ fun HomeScreen(
         uiState = uiState,
         onBookClick = { book -> onBookClick(book.workId) },
         onSettingsClick = onSettingsClick,
+        onDiagnosticsClick = onDiagnosticsClick,
         onQueryChange = viewModel::onQueryChange,
         onClearQuery = viewModel::onClearQuery,
         onCancelSearch = viewModel::onCancelSearch,
@@ -89,6 +92,7 @@ private fun HomeContent(
     uiState: HomeUiState,
     onBookClick: (Book) -> Unit,
     onSettingsClick: () -> Unit,
+    onDiagnosticsClick: () -> Unit,
     onQueryChange: (String) -> Unit,
     onClearQuery: () -> Unit,
     onCancelSearch: () -> Unit,
@@ -100,6 +104,9 @@ private fun HomeContent(
             TopAppBar(
                 title = { Text(stringResource(R.string.app_name)) },
                 actions = {
+                    IconButton(onClick = onDiagnosticsClick) {
+                        Icon(Icons.Filled.Info, contentDescription = stringResource(R.string.diagnostics_title))
+                    }
                     IconButton(onClick = onSettingsClick) {
                         Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings_title))
                     }

@@ -86,6 +86,7 @@ Las primeras reglas no dependen de la disciplina: **las impone el compilador** a
 11. **Las implementaciones se exponen por interfaz.** `:app` depende de `:data` para que Hilt pueda construir el grafo, pero los ViewModels solo reciben interfaces y casos de uso de `:domain`.
 12. **Los textos van en `strings.xml`**, nunca escritos directamente en el código Compose.
 13. **Las herramientas de debug viven en `src/debug`.** El modo de latencia demo, el logging HTTP y el fallo simulado con `getfail001` no se compilan en `release`.
+14. **Ajustes solo contiene preferencias.** Lo que solo muestra el estado de la app (caché, registro de búsquedas) vive en `feature/diagnostics`, con su propia ruta. Diagnóstico es un destino hermano de Ajustes, no un hijo.
 
 ## Por qué módulos y no solo paquetes
 

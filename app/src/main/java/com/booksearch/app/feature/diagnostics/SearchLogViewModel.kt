@@ -1,4 +1,4 @@
-package com.booksearch.app.feature.settings
+package com.booksearch.app.feature.diagnostics
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -13,8 +13,8 @@ import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 /**
- * Backs the "Peticiones / Búsquedas" sheet: the session's searches, newest first, updated live
- * while the sheet is open (a search finishing in the background appears at the top).
+ * Backs the "Búsquedas" tab of Diagnóstico: the session's searches, newest first, updated live
+ * while the tab is open (a search finishing in the background appears at the top).
  */
 @HiltViewModel
 class SearchLogViewModel @Inject constructor(

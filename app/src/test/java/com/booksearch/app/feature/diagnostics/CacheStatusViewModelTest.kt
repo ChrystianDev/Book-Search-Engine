@@ -1,8 +1,10 @@
-package com.booksearch.app.feature.settings
+package com.booksearch.app.feature.diagnostics
 
 import app.cash.turbine.test
 import com.booksearch.app.testing.FakeCacheStatusRepository
+import com.booksearch.app.testing.FakePreferencesRepository
 import com.booksearch.app.testing.MainDispatcherRule
+import com.booksearch.domain.model.CacheType
 import com.booksearch.domain.model.CachedSearch
 import com.booksearch.domain.time.TimeProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -19,10 +21,11 @@ class CacheStatusViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val repository = FakeCacheStatusRepository()
+    private val preferences = FakePreferencesRepository()
 
     // The clock is the virtual test time, so advancing the scheduler also moves the countdown.
     private fun TestScope.createViewModel() =
-        CacheStatusViewModel(repository, TimeProvider { testScheduler.currentTime })
+        CacheStatusViewModel(repository, preferences, TimeProvider { testScheduler.currentTime })
 
     private fun TestScope.advanceSeconds(seconds: Long) {
         testScheduler.advanceTimeBy(seconds * 1_000)
@@ -30,7 +33,7 @@ class CacheStatusViewModelTest {
     }
 
     @Test
-    fun `given cached searches, when the sheet opens, then available ones come first newest first and expired ones last`() = runTest {
+    fun `given cached searches, when the tab opens, then available ones come first newest first and expired ones last`() = runTest {
         // Given: the virtual clock starts at 0
         repository.searches = listOf(
             CachedSearch(query = "old", expiresAtMillis = 60_000),
@@ -47,6 +50,7 @@ class CacheStatusViewModelTest {
             // Then
             assertEquals(
                 CacheStatusUiState.Content(
+                    CacheType.MEMORY,
                     listOf(
                         CachedSearchItem("new", 180),
                         CachedSearchItem("old", 60),
@@ -59,7 +63,7 @@ class CacheStatusViewModelTest {
     }
 
     @Test
-    fun `given an open sheet, when time passes, then the countdown ticks every second and an expired entry moves to the end`() = runTest {
+    fun `given an open tab, when time passes, then the countdown ticks every second and an expired entry moves to the end`() = runTest {
         // Given
         repository.searches = listOf(
             CachedSearch(query = "newer", expiresAtMillis = 2_000),
@@ -79,6 +83,22 @@ class CacheStatusViewModelTest {
             advanceSeconds(1)
             val items = (awaitItem() as CacheStatusUiState.Content).items
             assertEquals(listOf(true, true), items.map { it.isExpired })
+        }
+    }
+
+    @Test
+    fun `given the tab is open, when the backend is switched in settings, then the next tick shows the new backend`() = runTest {
+        createViewModel().uiState.test {
+            skipItems(1) // Loading
+            testScheduler.runCurrent()
+            assertEquals(CacheType.MEMORY, (awaitItem() as CacheStatusUiState.Content).backend)
+
+            // When
+            preferences.setCacheType(CacheType.DISK)
+            advanceSeconds(1)
+
+            // Then
+            assertEquals(CacheType.DISK, (awaitItem() as CacheStatusUiState.Content).backend)
         }
     }
 }

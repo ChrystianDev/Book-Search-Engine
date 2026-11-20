@@ -6,6 +6,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.booksearch.app.feature.detail.DetailScreen
+import com.booksearch.app.feature.diagnostics.DiagnosticsScreen
 import com.booksearch.app.feature.home.HomeScreen
 import com.booksearch.app.feature.onboarding.OnboardingScreen
 import com.booksearch.app.feature.settings.SettingsScreen
@@ -28,6 +29,7 @@ fun AppNavHost(startDestination: Any) {
             HomeScreen(
                 onBookClick = { workId -> navController.navigate(DetailRoute(workId)) },
                 onSettingsClick = { navController.navigate(SettingsRoute) },
+                onDiagnosticsClick = { navController.navigate(DiagnosticsRoute) },
             )
         }
         composable<DetailRoute> { backStackEntry ->
@@ -36,6 +38,9 @@ fun AppNavHost(startDestination: Any) {
         }
         composable<SettingsRoute> {
             SettingsScreen(onBack = navController::navigateUp)
+        }
+        composable<DiagnosticsRoute> {
+            DiagnosticsScreen(onBack = navController::navigateUp)
         }
     }
 }

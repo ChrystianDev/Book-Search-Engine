@@ -1,4 +1,4 @@
-package com.booksearch.app.feature.settings
+package com.booksearch.app.feature.diagnostics
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,12 +10,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -29,35 +26,35 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.booksearch.app.R
 import com.booksearch.app.ui.theme.spacing
+import com.booksearch.domain.model.CacheType
 
 /**
- * "Info estado": cached searches of the active backend with a live countdown.
- * The ticker runs only while this sheet is shown and the app is in the foreground.
+ * Diagnóstico → "Caché" tab: the active backend and its cached searches with a live countdown.
+ * The ticker runs only while this tab is shown and the app is in the foreground.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CacheStatusSheet(
-    onDismiss: () -> Unit,
+fun CacheStatusPane(
+    modifier: Modifier = Modifier,
     viewModel: CacheStatusViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-    ) {
-        CacheStatusContent(uiState)
-    }
+    CacheStatusContent(uiState, modifier)
 }
 
 @Composable
-private fun CacheStatusContent(uiState: CacheStatusUiState) {
+private fun CacheStatusContent(uiState: CacheStatusUiState, modifier: Modifier = Modifier) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = MaterialTheme.spacing.lg)
-            .padding(bottom = MaterialTheme.spacing.xl),
+            .padding(top = MaterialTheme.spacing.lg),
     ) {
-        Text(stringResource(R.string.cache_status_title), style = MaterialTheme.typography.titleLarge)
+        if (uiState is CacheStatusUiState.Content) {
+            Text(
+                text = stringResource(R.string.cache_status_backend, stringResource(uiState.backend.labelRes())),
+                style = MaterialTheme.typography.titleMedium,
+            )
+        }
         Text(
             text = stringResource(R.string.cache_status_description),
             style = MaterialTheme.typography.bodySmall,
@@ -131,4 +128,9 @@ private fun CachedSearchRow(item: CachedSearchItem) {
             color = color,
         )
     }
+}
+
+private fun CacheType.labelRes(): Int = when (this) {
+    CacheType.MEMORY -> R.string.cache_memory
+    CacheType.DISK -> R.string.cache_disk
 }

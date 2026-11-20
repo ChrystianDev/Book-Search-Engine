@@ -32,13 +32,9 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -64,8 +60,6 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var showCacheStatus by rememberSaveable { mutableStateOf(false) }
-    var showSearchLog by rememberSaveable { mutableStateOf(false) }
     SettingsContent(
         uiState = uiState,
         onBack = onBack,
@@ -73,15 +67,7 @@ fun SettingsScreen(
         onThemeModeSelected = viewModel::onThemeModeSelected,
         onCacheTypeSelected = viewModel::onCacheTypeSelected,
         onDemoLatencyChanged = viewModel::onDemoLatencyChanged,
-        onCacheStatusClick = { showCacheStatus = true },
-        onSearchLogClick = { showSearchLog = true },
     )
-    if (showCacheStatus) {
-        CacheStatusSheet(onDismiss = { showCacheStatus = false })
-    }
-    if (showSearchLog) {
-        SearchLogSheet(onDismiss = { showSearchLog = false })
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -93,8 +79,6 @@ private fun SettingsContent(
     onThemeModeSelected: (ThemeMode) -> Unit,
     onCacheTypeSelected: (CacheType) -> Unit,
     onDemoLatencyChanged: (Boolean) -> Unit,
-    onCacheStatusClick: () -> Unit,
-    onSearchLogClick: () -> Unit,
 ) {
     Scaffold(
         topBar = {
@@ -133,11 +117,7 @@ private fun SettingsContent(
             SectionHeader(R.string.settings_theme)
             ThemeModeSelector(selected = uiState.themeMode, onSelected = onThemeModeSelected)
 
-            SectionHeader(R.string.settings_cache) {
-                TextButton(onClick = onCacheStatusClick) {
-                    Text(stringResource(R.string.cache_status_action))
-                }
-            }
+            SectionHeader(R.string.settings_cache)
             Column(
                 modifier = Modifier.selectableGroup(),
                 verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.sm),
@@ -151,17 +131,6 @@ private fun SettingsContent(
                 }
             }
 
-            SectionHeader(R.string.settings_search_log) {
-                TextButton(onClick = onSearchLogClick) {
-                    Text(stringResource(R.string.cache_status_action))
-                }
-            }
-            Text(
-                text = stringResource(R.string.settings_search_log_description),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
             if (uiState.showDemoLatency) {
                 SectionHeader(R.string.settings_developer)
                 DemoLatencyOption(enabled = uiState.demoLatencyEnabled, onChanged = onDemoLatencyChanged)
@@ -170,25 +139,17 @@ private fun SettingsContent(
     }
 }
 
-/** Section title, with an optional action aligned to the right (e.g. a text button). */
 @Composable
-private fun SectionHeader(@StringRes text: Int, action: (@Composable () -> Unit)? = null) {
-    Row(
+private fun SectionHeader(@StringRes text: Int) {
+    Text(
+        text = stringResource(text),
+        style = MaterialTheme.typography.titleMedium,
+        color = MaterialTheme.colorScheme.primary,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = MaterialTheme.spacing.xl, bottom = MaterialTheme.spacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = stringResource(text),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier
-                .weight(1f)
-                .semantics { heading() },
-        )
-        action?.invoke()
-    }
+            .padding(top = MaterialTheme.spacing.xl, bottom = MaterialTheme.spacing.md)
+            .semantics { heading() },
+    )
 }
 
 @Composable

@@ -1,4 +1,4 @@
-package com.booksearch.app.feature.settings
+package com.booksearch.app.feature.diagnostics
 
 import app.cash.turbine.test
 import com.booksearch.app.di.BuildInfo
@@ -22,7 +22,7 @@ class SearchLogViewModelTest {
     private val failed = SearchLogEntry(1, "getfail001", 1_000, SearchOutcome.Failed(DomainError.Server(404), durationMillis = 35))
 
     @Test
-    fun `given logged searches, when the sheet opens, then they are shown as logged`() = runTest {
+    fun `given logged searches, when the tab opens, then they are shown as logged`() = runTest {
         // Given
         val repository = FakeSearchLogRepository(listOf(success, cancelled, failed))
 
@@ -34,7 +34,7 @@ class SearchLogViewModelTest {
     }
 
     @Test
-    fun `given the sheet is open, when a new search finishes, then it appears at the top`() = runTest {
+    fun `given the tab is open, when a new search finishes, then it appears at the top`() = runTest {
         // Given
         val repository = FakeSearchLogRepository(listOf(cancelled))
         val viewModel = SearchLogViewModel(repository, BuildInfo(isDebug = false))
@@ -69,7 +69,7 @@ class SearchLogViewModelTest {
     }
 
     @Test
-    fun `given a debug build, when the sheet opens, then the failure hint is shown`() = runTest {
+    fun `given a debug build, when the tab opens, then the failure hint is shown`() = runTest {
         SearchLogViewModel(FakeSearchLogRepository(), BuildInfo(isDebug = true)).uiState.test {
             assertEquals(SearchLogUiState.Loading, awaitItem())
             assertEquals(SearchLogUiState.Content(emptyList(), showFailureHint = true), awaitItem())

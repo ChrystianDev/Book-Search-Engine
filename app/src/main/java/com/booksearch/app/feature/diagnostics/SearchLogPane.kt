@@ -1,4 +1,4 @@
-package com.booksearch.app.feature.settings
+package com.booksearch.app.feature.diagnostics
 
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
@@ -24,14 +24,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -62,36 +59,31 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 /**
- * "Peticiones / Búsquedas → Info estado": the session's searches with their outcome.
+ * Diagnóstico → "Búsquedas" tab: the session's searches with their outcome.
  * Each row expands (like a classic ExpandableListView group) to show the details.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchLogSheet(
-    onDismiss: () -> Unit,
+fun SearchLogPane(
+    modifier: Modifier = Modifier,
     viewModel: SearchLogViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-    ) {
-        SearchLogContent(uiState, onClear = viewModel::onClear)
-    }
+    SearchLogContent(uiState, onClear = viewModel::onClear, modifier = modifier)
 }
 
 @Composable
-private fun SearchLogContent(uiState: SearchLogUiState, onClear: () -> Unit) {
+private fun SearchLogContent(uiState: SearchLogUiState, onClear: () -> Unit, modifier: Modifier = Modifier) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = MaterialTheme.spacing.lg)
-            .padding(bottom = MaterialTheme.spacing.xl),
+            .padding(top = MaterialTheme.spacing.sm),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = stringResource(R.string.search_log_title),
-                style = MaterialTheme.typography.titleLarge,
+                text = stringResource(R.string.search_log_description),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f),
             )
             val hasEntries = uiState is SearchLogUiState.Content && uiState.entries.isNotEmpty()
@@ -99,12 +91,6 @@ private fun SearchLogContent(uiState: SearchLogUiState, onClear: () -> Unit) {
                 Text(stringResource(R.string.search_log_clear))
             }
         }
-        Text(
-            text = stringResource(R.string.search_log_description),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = MaterialTheme.spacing.xs),
-        )
         if (uiState is SearchLogUiState.Content && uiState.showFailureHint) {
             Text(
                 text = stringResource(R.string.search_log_failure_hint),

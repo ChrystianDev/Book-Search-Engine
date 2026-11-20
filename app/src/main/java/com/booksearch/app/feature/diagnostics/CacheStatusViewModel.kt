@@ -1,34 +1,40 @@
-package com.booksearch.app.feature.settings
+package com.booksearch.app.feature.diagnostics
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.booksearch.domain.model.CacheType
 import com.booksearch.domain.model.CachedSearch
 import com.booksearch.domain.repository.CacheStatusRepository
+import com.booksearch.domain.repository.PreferencesRepository
 import com.booksearch.domain.time.TimeProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 /**
- * Backs the "Info estado" sheet: the cached searches of the active backend with a live countdown.
+ * Backs the "Caché" tab of Diagnóstico: the active backend and its cached searches with a live countdown.
  *
- * The cache is re-read on every tick, so the list follows what really happens while the sheet is
- * open (a repeated search restarts its countdown, an eviction removes a row, a backend switch
- * shows the other cache). The ticker only runs while the sheet collects the state.
+ * The cache and the backend preference are re-read on every tick, so the tab follows what really
+ * happens while it is open (a repeated search restarts its countdown, an eviction removes a row,
+ * a backend switch in Settings shows the other cache). The ticker only runs while the tab collects
+ * the state.
  */
 @HiltViewModel
 class CacheStatusViewModel @Inject constructor(
     private val cacheStatusRepository: CacheStatusRepository,
+    private val preferencesRepository: PreferencesRepository,
     private val timeProvider: TimeProvider,
 ) : ViewModel() {
 
     val uiState: StateFlow<CacheStatusUiState> = flow {
         while (true) {
-            emit(CacheStatusUiState.Content(loadItems()))
+            val backend = preferencesRepository.preferences.first().cacheType
+            emit(CacheStatusUiState.Content(backend, loadItems()))
             delay(TICK_MILLIS)
         }
     }.stateIn(
@@ -61,7 +67,7 @@ class CacheStatusViewModel @Inject constructor(
 
 sealed interface CacheStatusUiState {
     data object Loading : CacheStatusUiState
-    data class Content(val items: List<CachedSearchItem>) : CacheStatusUiState
+    data class Content(val backend: CacheType, val items: List<CachedSearchItem>) : CacheStatusUiState
 }
 
 data class CachedSearchItem(

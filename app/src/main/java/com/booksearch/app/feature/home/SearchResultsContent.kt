@@ -70,7 +70,7 @@ fun SearchResultsContent(
             modifier = modifier,
         )
         is SearchState.TooShort -> MessageWithAction(
-            title = stringResource(R.string.search_too_short_title, MIN_QUERY_LENGTH),
+            title = pluralStringResource(R.plurals.search_too_short_title, MIN_QUERY_LENGTH, MIN_QUERY_LENGTH),
             message = stringResource(R.string.search_too_short_message),
             modifier = modifier,
         )

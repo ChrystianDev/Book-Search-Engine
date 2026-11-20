@@ -13,3 +13,6 @@ data class DetailRoute(val workId: String)
 
 @Serializable
 data object SettingsRoute
+
+@Serializable
+data object DiagnosticsRoute
