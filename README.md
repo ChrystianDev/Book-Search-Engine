@@ -4,13 +4,6 @@ Prueba técnica Android: buscador de libros con **Jetpack Compose**, arquitectur
 
 > **Hito 1** implementado. El Hito 2 está listado al final y la arquitectura está preparada para él.
 
-## Capturas
-
-| Onboarding | Home | Buscando | Resultados recientes (cache) | Detalle | Ajustes |
-|---|---|---|---|---|---|
-| _pendiente_ | _pendiente_ | _pendiente_ | _pendiente_ | _pendiente_ | _pendiente_ |
-
-<!-- Guardar las capturas en docs/screenshots/ y sustituir "_pendiente_" por ![](docs/screenshots/<nombre>.png) -->
 
 ## API elegida: Open Library
 
@@ -72,7 +65,7 @@ adb logcat -s BookSearch okhttp.OkHttpClient
 MVVM con separación estricta en tres módulos Gradle:
 
 ```mermaid
-graph LR
+graph TD
     app[":app<br/>Compose · ViewModels · navegación · design system"] --> domain
     app --> data
     data[":data<br/>Retrofit · DTOs · mappers · cache (memoria y Room) · registro de búsquedas · DataStore · Hilt"] --> domain
@@ -196,6 +189,8 @@ El estado de la caché y el registro de búsquedas viven en una pantalla propia,
 - **Por qué un icono en la home y no una fila en Ajustes.** Es un destino de primer nivel y se llega con un toque. Entrar desde Ajustes lo escondía a dos niveles y volvía a acoplar las dos pantallas. En una app de producción lo mostraría solo en builds internos. Aquí se ve en todos los builds porque forma parte de lo que la prueba técnica quiere enseñar.
 - **Lo que se queda en Ajustes:** el selector *Memoria / Disco* y el interruptor de latencia demo, porque los dos cambian el comportamiento de la app y por tanto son configuración.
 
+![Estado de cache](docs/screenshots/status_items_cache.png)
+
 ### 3. Manejo de errores
 
 `safeApiCall` traduce los errores técnicos a `DomainError`, y la UI muestra un mensaje comprensible para cada tipo:
@@ -261,17 +256,6 @@ Nota sobre `compileSdk 36`: las últimas versiones de Compose (1.12), core-ktx (
 
 - **La home espera a todas sus secciones** antes de mostrarse. El endpoint de *subjects* de Open Library puede tardar varios segundos, así que la primera carga puede ser lenta; las siguientes salen del cache. Mostrar cada sección según llega sería una mejora sencilla para el Hito 2.
 - Las descripciones de Open Library pueden traer Markdown. Se limpian las notas finales (`----`), pero el Markdown no se renderiza.
-
-## Fuera de alcance (Hito 2)
-
-La arquitectura está preparada, pero esto no está implementado:
-
-- **Login**.
-- **Selector de idioma inglés/español**: los textos ya están en `strings.xml`, solo falta `values-en` y el selector.
-- **Loading personalizado o animado**.
-- **Accesibilidad completa**: TalkBack revisado, tamaños de fuente dinámicos y contraste.
-- **Responsividad completa**: tablets, plegables y landscape con layouts adaptativos.
-- **Favoritos con Firestore**: encajaría como un nuevo repositorio en `:domain`/`:data`.
 
 ## Glosario
 
