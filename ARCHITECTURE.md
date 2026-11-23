@@ -93,7 +93,6 @@ Las primeras reglas no dependen de la disciplina: **las impone el compilador** a
 - **Las reglas se cumplen solas.** Con todo en un único módulo, separar por paquetes sería solo una convención: nada impediría a una pantalla importar un DTO o a un caso de uso usar `Context`.
 - **Builds más rápidas.** Gradle compila en paralelo los módulos independientes y solo recompila lo que cambia: si modificas una pantalla de `:app`, `:domain` y `:data` no se recompilan.
 - **Tests más rápidos y simples.** `:domain` es Kotlin puro, así que sus tests corren en la JVM sin nada de Android.
-- **Escala bien.** Las funcionalidades del Hito 2 (login, favoritos con Firestore) pueden añadirse como módulos nuevos, por ejemplo `:feature:favorites`, sin tocar los existentes.
 
 ## Comandos útiles por módulo
 

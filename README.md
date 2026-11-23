@@ -2,9 +2,6 @@
 
 Prueba técnica Android: buscador de libros con **Jetpack Compose**, arquitectura **MVVM multimódulo**, **cancelación real** de búsquedas en curso, **cache en memoria con TTL** y tests en todas las capas.
 
-> **Hito 1** implementado. El Hito 2 está listado al final y la arquitectura está preparada para él.
-
-
 ## API elegida: Open Library
 
 Uso [Open Library](https://openlibrary.org/developers/api) por tres motivos:
@@ -32,9 +29,11 @@ Todas las peticiones llevan el `User-Agent` que pide Open Library: `BookSearch/1
 Requisitos: Android SDK 36 y un JDK 17 o superior. Gradle viene con el wrapper.
 
 ```bash
-./gradlew installDebug   # instala la app (debug) en un dispositivo o emulador
+./gradlew installDebug   # instala la app (debug) en un dispositivo o emulador (no arranca la app)
 ./gradlew test           # tests unitarios de todos los módulos
 ./gradlew build          # compila, ejecuta lint y tests
+adb devices              # para ver si hay dispositivos conectados
+adb shell monkey -p com.booksearch.app 1  # instala y arranca la app en dispositivo o emulador
 ```
 
 Para seguir el flujo de búsqueda y cache en Logcat:
@@ -164,7 +163,7 @@ La pestaña *Búsquedas* de la pantalla de Diagnóstico (apartado 2d) muestra la
 | Estado | Color | Detalle |
 |---|---|---|
 | **Éxito** | teal | Libros devueltos, duración y origen (red o caché). |
-| **Cancelada** | naranja oscuro | Tiempo desde que empezó hasta que se canceló. |
+| **Cancelada** | naranja | Tiempo desde que empezó hasta que se canceló. |
 | **Fallo** | rojo | Tipo de error (`HTTP 404`, sin conexión, tiempo agotado…) y duración. |
 
 - **Dónde se registra**: `BookRepositoryImpl.searchBooks` envuelve cada búsqueda en `SearchLog.track`, que mide el tiempo con el `TimeProvider` y anota cómo terminó. Ahí ya se sabe todo: el número de libros, si vino de la caché y el `DomainError` ya traducido. Un interceptor de OkHttp no vería las búsquedas servidas desde la caché ni el número de libros.
@@ -254,7 +253,7 @@ Nota sobre `compileSdk 36`: las últimas versiones de Compose (1.12), core-ktx (
 
 ## Limitaciones conocidas
 
-- **La home espera a todas sus secciones** antes de mostrarse. El endpoint de *subjects* de Open Library puede tardar varios segundos, así que la primera carga puede ser lenta; las siguientes salen del cache. Mostrar cada sección según llega sería una mejora sencilla para el Hito 2.
+- **La home espera a todas sus secciones** antes de mostrarse. El endpoint de *subjects* de Open Library puede tardar varios segundos, así que la primera carga puede ser lenta; las siguientes salen del cache.
 - Las descripciones de Open Library pueden traer Markdown. Se limpian las notas finales (`----`), pero el Markdown no se renderiza.
 
 ## Glosario
