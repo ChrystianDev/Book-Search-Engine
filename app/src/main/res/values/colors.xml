@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary of the default "Biblioteca" palette, used by the splash screen and launcher icon. -->
+    <color name="library_primary">#FF1E3A5F</color>
+    <color name="library_background">#FFFAFAF7</color>
+</resources>

@@ -1,0 +1,46 @@
+package com.booksearch.app.navigation
+
+import androidx.compose.runtime.Composable
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
+import com.booksearch.app.feature.detail.DetailScreen
+import com.booksearch.app.feature.diagnostics.DiagnosticsScreen
+import com.booksearch.app.feature.home.HomeScreen
+import com.booksearch.app.feature.onboarding.OnboardingScreen
+import com.booksearch.app.feature.settings.SettingsScreen
+
+@Composable
+fun AppNavHost(startDestination: Any) {
+    val navController = rememberNavController()
+
+    NavHost(navController = navController, startDestination = startDestination) {
+        composable<OnboardingRoute> {
+            OnboardingScreen(
+                onFinished = {
+                    navController.navigate(HomeRoute) {
+                        popUpTo<OnboardingRoute> { inclusive = true }
+                    }
+                },
+            )
+        }
+        composable<HomeRoute> {
+            HomeScreen(
+                onBookClick = { workId -> navController.navigate(DetailRoute(workId)) },
+                onSettingsClick = { navController.navigate(SettingsRoute) },
+                onDiagnosticsClick = { navController.navigate(DiagnosticsRoute) },
+            )
+        }
+        composable<DetailRoute> { backStackEntry ->
+            val route = backStackEntry.toRoute<DetailRoute>()
+            DetailScreen(workId = route.workId, onBack = navController::navigateUp)
+        }
+        composable<SettingsRoute> {
+            SettingsScreen(onBack = navController::navigateUp)
+        }
+        composable<DiagnosticsRoute> {
+            DiagnosticsScreen(onBack = navController::navigateUp)
+        }
+    }
+}
